@@ -1,0 +1,44 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Home",
+    "section": "",
+    "text": "Hi, I’m Ahmed — a Bioinformatics PhD student at the University of Michigan working on single-cell and spatial sequencing data in pancreatic cancer.\n\n\n\nGitHub\nGoogle Scholar\nTwitter\nCV (PDF)"
+  },
+  {
+    "objectID": "index.html#links",
+    "href": "index.html#links",
+    "title": "Home",
+    "section": "",
+    "text": "GitHub\nGoogle Scholar\nTwitter\nCV (PDF)"
+  },
+  {
+    "objectID": "papers.html",
+    "href": "papers.html",
+    "title": "Papers with Code",
+    "section": "",
+    "text": "Title of Paper 1\nJournal, Year\nPaper | Code\n\n\n\n\n\nTitle of Paper 2\nJournal, Year\nPaper | Code"
+  },
+  {
+    "objectID": "papers.html#section",
+    "href": "papers.html#section",
+    "title": "Papers with Code",
+    "section": "",
+    "text": "Title of Paper 1\nJournal, Year\nPaper | Code"
+  },
+  {
+    "objectID": "papers.html#section-1",
+    "href": "papers.html#section-1",
+    "title": "Papers with Code",
+    "section": "",
+    "text": "Title of Paper 2\nJournal, Year\nPaper | Code"
+  },
+  {
+    "objectID": "workflows.html",
+    "href": "workflows.html",
+    "title": "Workflows and Tutorials",
+    "section": "",
+    "text": "Tutorials\nHere are some tutorials for bioinformatics analysis:\n\nSingle-cell RNA-seq preprocessing\nTutorial Link\nSpatial Transcriptomics analysis\nTutorial Link\nDifferential expression analysis\nTutorial Link"
+  }
+]

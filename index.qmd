@@ -1,0 +1,13 @@
+---
+title: "Home"
+---
+
+# About Me
+
+Hi, I’m Ahmed — a Bioinformatics PhD student at the University of Michigan working on single-cell and spatial sequencing data in pancreatic cancer.
+
+## Links
+- [GitHub](https://github.com/yourusername)
+- [Google Scholar](https://scholar.google.com/citations?user=XXXXX)
+- [Twitter](https://twitter.com/yourhandle)
+- [CV (PDF)](cv.pdf)

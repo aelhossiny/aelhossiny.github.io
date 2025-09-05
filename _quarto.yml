@@ -1,0 +1,22 @@
+project:
+  type: website
+  output-dir: docs
+
+website:
+  title: "Ahmed Elhossiny"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Home
+      - href: papers.qmd
+        text: Papers with Code
+      - href: workflows.qmd
+        text: Workflows/Tutorials
+  page-footer:
+    left: "© 2025 Ahmed Elhossiny"
+    right: "[GitHub](https://github.com/yourusername) | [LinkedIn](https://linkedin.com/in/yourprofile)"
+
+format:
+  html:
+    theme: cosmo
+    css: styles.css

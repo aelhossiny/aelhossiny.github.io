@@ -1,0 +1,15 @@
+---
+title: "Papers with Code"
+---
+
+# Publications
+
+## 2024
+- **Title of Paper 1**  
+  *Journal, Year*  
+  [Paper](https://doi.org/xxxx) | [Code](https://github.com/yourrepo)
+
+## 2023
+- **Title of Paper 2**  
+  *Journal, Year*  
+  [Paper](https://doi.org/yyyy) | [Code](https://github.com/yourrepo)
