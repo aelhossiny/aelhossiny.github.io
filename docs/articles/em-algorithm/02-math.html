@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.38">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2025-06-08">
+<meta name="description" content="The ELBO, Jensen’s inequality, KL divergence, and the E/M-step derivations — every equation explained in plain words alongside the two-coin example.">
+
+<title>The EM Algorithm, Part 2: Math with Intuition – Ahmed Elhossiny</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-af010de4e93bcc3bba4b1c1d40d2456e.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-20f4e7f6792b9c891757c6c77da7ca36.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<style>html{ scroll-behavior: smooth; }</style>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a href="../../index.html" class="navbar-brand navbar-brand-logo">
+    <img src="../../images/dna-logo.svg" alt="" class="navbar-logo light-content">
+    <img src="../../images/dna-logo.svg" alt="" class="navbar-logo dark-content">
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../index.html"> 
+<span class="menu-text">About Me</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../pipelines/index.html"> 
+<span class="menu-text">Code/Workflows</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../articles/index.html"> 
+<span class="menu-text">Articles</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#notation" id="toc-notation" class="nav-link active" data-scroll-target="#notation">Notation</a></li>
+  <li><a href="#the-thing-we-actually-want-to-maximize" id="toc-the-thing-we-actually-want-to-maximize" class="nav-link" data-scroll-target="#the-thing-we-actually-want-to-maximize">The thing we actually want to maximize</a></li>
+  <li><a href="#the-obstacle-log-of-a-sum" id="toc-the-obstacle-log-of-a-sum" class="nav-link" data-scroll-target="#the-obstacle-log-of-a-sum">The obstacle: log of a sum</a></li>
+  <li><a href="#slipping-in-a-helper-distribution-q" id="toc-slipping-in-a-helper-distribution-q" class="nav-link" data-scroll-target="#slipping-in-a-helper-distribution-q">Slipping in a helper distribution q</a></li>
+  <li><a href="#jensens-inequality" id="toc-jensens-inequality" class="nav-link" data-scroll-target="#jensens-inequality">Jensen’s inequality</a></li>
+  <li><a href="#the-exact-gap-is-a-kl-divergence" id="toc-the-exact-gap-is-a-kl-divergence" class="nav-link" data-scroll-target="#the-exact-gap-is-a-kl-divergence">The exact gap is a KL divergence</a></li>
+  <li><a href="#the-two-steps-and-the-geometry" id="toc-the-two-steps-and-the-geometry" class="nav-link" data-scroll-target="#the-two-steps-and-the-geometry">The two steps, and the geometry</a></li>
+  <li><a href="#the-e-step-and-m-step-on-the-coins" id="toc-the-e-step-and-m-step-on-the-coins" class="nav-link" data-scroll-target="#the-e-step-and-m-step-on-the-coins">The E-step and M-step on the coins</a></li>
+  <li><a href="#watching-the-bounds-touch-and-climb-for-real" id="toc-watching-the-bounds-touch-and-climb-for-real" class="nav-link" data-scroll-target="#watching-the-bounds-touch-and-climb-for-real">Watching the bounds touch and climb, for real</a></li>
+  <li><a href="#the-loop-compactly" id="toc-the-loop-compactly" class="nav-link" data-scroll-target="#the-loop-compactly">The loop, compactly</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">The EM Algorithm, Part 2: Math with Intuition</h1>
+  <div class="quarto-categories">
+    <div class="quarto-category">statistics</div>
+    <div class="quarto-category">machine-learning</div>
+    <div class="quarto-category">algorithms</div>
+    <div class="quarto-category">EM-algorithm</div>
+  </div>
+  </div>
+
+<div>
+  <div class="description">
+    The ELBO, Jensen’s inequality, KL divergence, and the E/M-step derivations — every equation explained in plain words alongside the two-coin example.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">June 8, 2025</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<blockquote class="blockquote">
+<p><strong>Three-part series.</strong> 1. <a href="../../articles/em-algorithm/01-intuition.html">The Intuition</a> — the idea, no heavy math. 2. <strong>Math with Intuition</strong> <em>(you are here)</em> — every equation, explained in plain words. 3. <a href="../../articles/em-algorithm/03-rigorous.html">The Rigorous Treatment</a> — proofs, calculus, and the formal guarantees.</p>
+</blockquote>
+<p>This part keeps the two-coin example from Part 1 and builds the full machinery: the marginal likelihood, the obstacle that makes it hard, Jensen’s inequality, the ELBO, the KL gap, and the geometry that guarantees EM works.</p>
+<hr>
+<section id="notation" class="level2">
+<h2 class="anchored" data-anchor-id="notation">Notation</h2>
+<p>Per experiment <span class="math inline">\(i\)</span>: <span class="math inline">\(x_i\)</span> = heads observed (data), <span class="math inline">\(z_i \in \{A,B\}\)</span> = which coin was used (latent). Parameters <span class="math inline">\(\theta = (\theta_A, \theta_B)\)</span>; mixing priors <span class="math inline">\(\pi_A = \pi_B = \tfrac12\)</span>; <span class="math inline">\(m = 10\)</span> flips. One coin gives a binomial:</p>
+<p><span class="math display">\[p(x_i \mid z_i = A, \theta) = \binom{m}{x_i}\,\theta_A^{x_i}(1-\theta_A)^{m-x_i}.\]</span></p>
+<p>For brevity write <span class="math inline">\(b_{iA} = \binom{m}{x_i}\theta_A^{x_i}(1-\theta_A)^{m-x_i}\)</span> (and similarly <span class="math inline">\(b_{iB}\)</span>).</p>
+</section>
+<section id="the-thing-we-actually-want-to-maximize" class="level2">
+<h2 class="anchored" data-anchor-id="the-thing-we-actually-want-to-maximize">The thing we actually want to maximize</h2>
+<p>We only see the <span class="math inline">\(x_i\)</span>, so the quantity to maximize is the <strong>marginal log-likelihood</strong>, summing the latent coin out:</p>
+<p><span class="math display">\[\ell(\theta) = \sum_i \log p(x_i \mid \theta) = \sum_i \log \sum_{z_i \in \{A,B\}} p(x_i, z_i \mid \theta).\]</span></p>
+<p>Reading it from the inside out:</p>
+<ul>
+<li><strong>The joint</strong> <span class="math inline">\(p(x_i, z_i \mid \theta) = p(z_i)\,p(x_i\mid z_i,\theta)\)</span> — “pick a coin, then flip it.” For the two coins: <span class="math inline">\(\pi_A b_{iA}\)</span> and <span class="math inline">\(\pi_B b_{iB}\)</span>.</li>
+<li><strong>The inner sum <span class="math inline">\(\sum_{z_i}\)</span></strong> is <em>marginalization</em>: you can’t see the coin, so you add up over every value it could take. The result is the per-experiment marginal, a <strong>mixture of two binomials</strong>:</li>
+</ul>
+<p><span class="math display">\[p(x_i \mid \theta) = \pi_A\,b_{iA} + \pi_B\,b_{iB}.\]</span></p>
+<ul>
+<li><strong>The <span class="math inline">\(\log\)</span></strong> puts it on log scale; <strong>the outer <span class="math inline">\(\sum_i\)</span></strong> adds across the (independent) experiments.</li>
+</ul>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Do we get the marginal first then take the log, or take the log of the sum then add up?
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-1" class="callout-1-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>Both — they’re the same number, via one log identity. There are <strong>two</strong> sums: an inner sum over the <em>coin</em> (builds each marginal) and an outer combination over <em>experiments</em>. Because experiments are independent, the whole-dataset likelihood is a <strong>product</strong> of the marginals:</p>
+<p><span class="math display">\[L(\theta) = \prod_i p(x_i\mid\theta) = \prod_i\Big[\sum_{z_i} p(x_i,z_i\mid\theta)\Big].\]</span></p>
+<p>Take one log of that product, and <span class="math inline">\(\log(ab) = \log a + \log b\)</span> turns it into a sum of logs:</p>
+<p><span class="math display">\[\ell(\theta) = \sum_i \log p(x_i\mid\theta) = \sum_i \log \sum_{z_i} p(x_i,z_i\mid\theta).\]</span></p>
+<p>So “multiply the marginals, then log” and “log each marginal, then add” land on the identical <span class="math inline">\(\ell(\theta)\)</span>. In practice we always use the sum-of-logs form (adding beats multiplying tiny probabilities that underflow).</p>
+</div>
+</div>
+</div>
+</section>
+<section id="the-obstacle-log-of-a-sum" class="level2">
+<h2 class="anchored" data-anchor-id="the-obstacle-log-of-a-sum">The obstacle: log of a sum</h2>
+<p>Look at the shape of the right-hand side: a <span class="math inline">\(\log\)</span> wrapped around a <strong>sum</strong>.</p>
+<p><span class="math display">\[\log p(x_i\mid\theta) = \log\big(\pi_A b_{iA} + \pi_B b_{iB}\big).\]</span></p>
+<p>You can’t distribute it — <span class="math inline">\(\log(a+b) \neq \log a + \log b\)</span> — so the two unknowns <span class="math inline">\(\theta_A\)</span>, <span class="math inline">\(\theta_B\)</span> stay tangled inside that log, with no clean derivative and no closed-form maximizer. <strong>This single obstacle is the entire reason EM exists.</strong></p>
+<p>Contrast the easy world: if the coin labels were <em>known</em>, the log would sit on a single binomial, and <span class="math inline">\(\log b_{iA} = \text{const} + x_i\log\theta_A + (m-x_i)\log(1-\theta_A)\)</span> — a tidy, separable expression you can maximize in closed form. The sum is what ruins this.</p>
+</section>
+<section id="slipping-in-a-helper-distribution-q" class="level2">
+<h2 class="anchored" data-anchor-id="slipping-in-a-helper-distribution-q">Slipping in a helper distribution q</h2>
+<p>Introduce a <strong>free distribution</strong> <span class="math inline">\(q(z_i)\)</span> over the latent coin — just two numbers <span class="math inline">\(q(z_i{=}A)\)</span> and <span class="math inline">\(q(z_i{=}B)\)</span> summing to 1. “Free” means <em>we</em> choose it, and the algebra below holds for <em>any</em> choice.</p>
+<p>Multiply and divide inside the sum by <span class="math inline">\(q\)</span> (which equals multiplying by 1):</p>
+<p><span class="math display">\[p(x_i \mid \theta) = \sum_{z_i} q(z_i)\,\frac{p(x_i, z_i\mid\theta)}{q(z_i)} = \mathbb{E}_{q}\!\left[\frac{p(x_i, z_i\mid\theta)}{q(z_i)}\right].\]</span></p>
+<p>That last equality is just the <strong>definition of expectation</strong>, <span class="math inline">\(\mathbb{E}_q[g(z)] = \sum_z q(z)\,g(z)\)</span>. So the marginal is now “log of an expectation,” <span class="math inline">\(\log\mathbb{E}_q[\cdot]\)</span>.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-2-contents" aria-controls="callout-2" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Why does dividing by q turn the sum into an expectation, and what does “free” mean?
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-2" class="callout-2-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>An expectation <em>is</em> the pattern “sum over outcomes of (probability) × (value).” By writing <span class="math inline">\(\sum_{z_i} q(z_i)\cdot\frac{p}{q(z_i)}\)</span> we forced the marginal into exactly that shape, with <span class="math inline">\(q\)</span> as the weighting and <span class="math inline">\(\frac{p}{q}\)</span> as the function being averaged. The two copies of <span class="math inline">\(q\)</span> don’t cancel <em>conceptually</em>: the front one is a probability weight, the bottom one is part of the function — and that separation is what sets up the next step.</p>
+<p>“Free” means <span class="math inline">\(q\)</span> is a variable we control, constrained only by being a distribution (<span class="math inline">\(q(z_i)\ge 0\)</span>, sums to 1, and nonzero wherever the joint is). The whole point of slipping it in is to reshape the stubborn <span class="math inline">\(\log\sum\)</span> into a <span class="math inline">\(\log\mathbb{E}\)</span> that Jensen’s inequality can act on.</p>
+</div>
+</div>
+</div>
+</section>
+<section id="jensens-inequality" class="level2">
+<h2 class="anchored" data-anchor-id="jensens-inequality">Jensen’s inequality</h2>
+<p>For a <strong>concave</strong> function <span class="math inline">\(\varphi\)</span> (like <span class="math inline">\(\log\)</span>), the function of an average is at least the average of the function:</p>
+<p><span class="math display">\[\varphi\big(\mathbb{E}[X]\big) \ge \mathbb{E}\big[\varphi(X)\big].\]</span></p>
+<p>Geometrically: a concave curve bulges <em>above</em> its chords, so evaluating the curve at the average (a point on the curve) sits at or above averaging two curve-heights (a point on the chord).</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="fig_jensen.png" class="img-fluid figure-img"></p>
+<figcaption>Jensen’s inequality: chord below curve, with the Jensen gap</figcaption>
+</figure>
+</div>
+<p>The green dot is “function of the average” (on the curve); the orange dot is “average of the function” (on the chord); the vertical distance is the <strong>Jensen gap</strong>, which is zero only when the two inputs coincide.</p>
+<p>Applying this to our <span class="math inline">\(\log\mathbb{E}_q[\cdot]\)</span> — concave <span class="math inline">\(\log\)</span>, so push it inside at the cost of an inequality:</p>
+<p><span class="math display">\[\log p(x_i\mid\theta) = \log\mathbb{E}_q\!\left[\frac{p(x_i,z_i\mid\theta)}{q(z_i)}\right] \;\ge\; \mathbb{E}_q\!\left[\log\frac{p(x_i,z_i\mid\theta)}{q(z_i)}\right] = \sum_{z_i} q(z_i)\log\frac{p(x_i,z_i\mid\theta)}{q(z_i)}.\]</span></p>
+<p>That right-hand side is the <strong>ELBO</strong>, written <span class="math inline">\(\mathcal{L}(q,\theta)\)</span>. The <span class="math inline">\(\log\)</span> now sits <strong>outside</strong> the sum, on single product terms — exactly the splittable, differentiable form we wanted.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-3-contents" aria-controls="callout-3" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Doesn’t splitting that log violate log(a+b) ≠ log(a)+log(b)?
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-3" class="callout-3-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>No — the thing inside this log is a <strong>quotient</strong>, not a sum. <span class="math inline">\(\log\)</span> splits over <span class="math inline">\(\times\)</span> and <span class="math inline">\(\div\)</span> freely (<span class="math inline">\(\log\frac{a}{b} = \log a - \log b\)</span>); it’s only <span class="math inline">\(\log(a+b)\)</span> that’s forbidden. The sum over <span class="math inline">\(z_i\)</span> is now <strong>outside</strong> the log (it’s the expectation’s weighting), while <strong>inside</strong> each log there’s just one fraction <span class="math inline">\(\frac{p(x_i,z_i\mid\theta)}{q(z_i)}\)</span>. Jensen’s whole job was to relocate the sum from inside the log (forbidden) to outside it (fine) — which is precisely what makes this split legal.</p>
+</div>
+</div>
+</div>
+</section>
+<section id="the-exact-gap-is-a-kl-divergence" class="level2">
+<h2 class="anchored" data-anchor-id="the-exact-gap-is-a-kl-divergence">The exact gap is a KL divergence</h2>
+<p>The inequality has an exact bookkeeping form. For <em>any</em> <span class="math inline">\(q\)</span>:</p>
+<p><span class="math display">\[\boxed{\;\log p(x_i \mid \theta) = \underbrace{\mathcal{L}(q,\theta)}_{\text{ELBO}} + \underbrace{\mathrm{KL}\big(q(z_i)\,\|\,p(z_i\mid x_i,\theta)\big)}_{\ge\,0}\;}\]</span></p>
+<p>The gap between the true log-likelihood and the ELBO is exactly the KL divergence between your chosen <span class="math inline">\(q\)</span> and the <strong>posterior</strong> <span class="math inline">\(p(z_i\mid x_i,\theta)\)</span>. The KL has two properties that drive everything:</p>
+<ul>
+<li><span class="math inline">\(\mathrm{KL} \ge 0\)</span> always — so the ELBO is always a <em>lower</em> bound;</li>
+<li><span class="math inline">\(\mathrm{KL} = 0\)</span> <strong>iff</strong> <span class="math inline">\(q(z_i) = p(z_i\mid x_i,\theta)\)</span> — so the bound is <em>tight</em> exactly when <span class="math inline">\(q\)</span> is the posterior.</li>
+</ul>
+<p>On the coins, with <span class="math inline">\(q(z{=}A) = w\)</span> and posterior <span class="math inline">\(p(z{=}A\mid x,\theta) = \gamma\)</span>, the KL is just</p>
+<p><span class="math display">\[\mathrm{KL} = w\log\frac{w}{\gamma} + (1-w)\log\frac{1-w}{1-\gamma},\]</span></p>
+<p>a concrete number measuring how far your working belief <span class="math inline">\(w\)</span> is from the row’s actual posterior <span class="math inline">\(\gamma\)</span> — zero when they match.</p>
+</section>
+<section id="the-two-steps-and-the-geometry" class="level2">
+<h2 class="anchored" data-anchor-id="the-two-steps-and-the-geometry">The two steps, and the geometry</h2>
+<p>Rearranging the boxed identity, <span class="math inline">\(\mathcal{L}(q,\theta) = \ell(\theta) - \mathrm{KL}\)</span>. Hold <span class="math inline">\(\theta\)</span> fixed: <span class="math inline">\(\ell(\theta)\)</span> is a constant, so <strong>maximizing the ELBO over <span class="math inline">\(q\)</span> = minimizing the KL over <span class="math inline">\(q\)</span></strong> — a seesaw. Both bottom out at $q = $ posterior.</p>
+<p><strong>E-step (touch).</strong> Set <span class="math inline">\(q = p(z_i\mid x_i,\theta_{\text{old}})\)</span>, the posterior at your current spot. This zeroes the KL <em>at <span class="math inline">\(\theta_{\text{old}}\)</span></em>, so the ELBO rises up to <strong>touch</strong> the true curve right where you stand.</p>
+<p><strong>M-step (climb).</strong> Freeze that <span class="math inline">\(q\)</span> and maximize the ELBO over <span class="math inline">\(\theta\)</span> — <span class="math inline">\(\theta_{\text{new}}\)</span>. Since the bound is easy and decoupled, this is a closed-form update.</p>
+<p><strong>Why climbing the bound raises the truth</strong> — chain three facts:</p>
+<p><span class="math display">\[\ell(\theta_{\text{new}}) \underbrace{\ge}_{\text{bound below truth}} \mathcal{L}(q,\theta_{\text{new}}) \underbrace{\ge}_{\theta_{\text{new}}\text{ is the peak}} \mathcal{L}(q,\theta_{\text{old}}) \underbrace{=}_{\text{touch}} \ell(\theta_{\text{old}}).\]</span></p>
+<p>End to end: <span class="math inline">\(\ell(\theta_{\text{new}}) \ge \ell(\theta_{\text{old}})\)</span>. The true log-likelihood never decreases.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="fig_minorize_maximize.png" class="img-fluid figure-img"></p>
+<figcaption>One EM step: the bound touches the true curve, then is climbed</figcaption>
+</figure>
+</div>
+<p>Because the dome reopens a gap once you step off <span class="math inline">\(\theta_{\text{old}}\)</span>, you rebuild it each round — a staircase of bounds walking up the true curve:</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="fig_staircase.png" class="img-fluid figure-img"></p>
+<figcaption>EM as a staircase of lower bounds climbing the log-likelihood</figcaption>
+</figure>
+</div>
+<p>The steps shrink near the top: as you approach the optimum, each bound’s peak sits almost directly above its touch point (the bound is <em>tangent</em> to <span class="math inline">\(\ell\)</span> there), so there’s less left to climb — which is both why EM converges and why its tail is slow.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-4-contents" aria-controls="callout-4" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Why does the bound curve down instead of following the true curve?
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-4" class="callout-4-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>Because the <span class="math inline">\(q\)</span> in the bound is <strong>frozen</strong> at its <span class="math inline">\(\theta_{\text{old}}\)</span> value during the climb. The gap is <span class="math inline">\(\mathrm{KL}(q\,\|\,p(z\mid x,\theta))\)</span>, which compares your frozen <span class="math inline">\(q\)</span> to the posterior <em>at the current <span class="math inline">\(\theta\)</span></em>. At <span class="math inline">\(\theta_{\text{old}}\)</span> they match (KL = 0, touch). Step away and the posterior shifts while <span class="math inline">\(q\)</span> does not, so KL grows and the dome sags below the true curve by exactly that amount. If you let <span class="math inline">\(q\)</span> track the posterior at every <span class="math inline">\(\theta\)</span>, KL would be zero everywhere and the dome would <em>be</em> the true log-likelihood — with all its intractability back. The sag is the price of making the bound easy; re-touching each round is how EM keeps paying it.</p>
+</div>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-5-contents" aria-controls="callout-5" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>How can q be the “true posterior” if I don’t know the right θ yet?
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-5" class="callout-5-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p><span class="math inline">\(q\)</span> is the true posterior <strong>given your current <span class="math inline">\(\theta\)</span></strong>, not given the correct <span class="math inline">\(\theta^\star\)</span>. The posterior under the right parameters, <span class="math inline">\(p(z\mid x,\theta^\star)\)</span>, is indeed uncomputable — but EM never needs it. It only ever computes <span class="math inline">\(p(z\mid x,\theta_{\text{old}})\)</span>, which uses the concrete numbers you’re holding. Within one iteration EM treats <span class="math inline">\(\theta_{\text{old}}\)</span> <em>as if</em> it were correct: “suppose the biases are <span class="math inline">\((0.6, 0.5)\)</span>; then the mathematically correct belief about the coins is exactly this posterior.” That conditional is exactly true regardless of whether <span class="math inline">\((0.6,0.5)\)</span> is right. Feeding this self-consistent-but-slightly-wrong posterior into the M-step yields a <em>less</em> wrong <span class="math inline">\(\theta\)</span>; at convergence, current <span class="math inline">\(\theta\)</span> has become <span class="math inline">\(\theta^\star\)</span> and the two notions of “true posterior” finally coincide.</p>
+</div>
+</div>
+</div>
+</section>
+<section id="the-e-step-and-m-step-on-the-coins" class="level2">
+<h2 class="anchored" data-anchor-id="the-e-step-and-m-step-on-the-coins">The E-step and M-step on the coins</h2>
+<p><strong>E-step (responsibilities).</strong> Setting <span class="math inline">\(q\)</span> to the posterior gives, by Bayes’ rule,</p>
+<p><span class="math display">\[\gamma_i = p(z_i = A\mid x_i,\theta) = \frac{\pi_A\,\theta_A^{x_i}(1-\theta_A)^{m-x_i}}{\pi_A\,\theta_A^{x_i}(1-\theta_A)^{m-x_i} + \pi_B\,\theta_B^{x_i}(1-\theta_B)^{m-x_i}}.\]</span></p>
+<p><strong>M-step (weighted MLE).</strong> Maximizing the ELBO over <span class="math inline">\(\theta\)</span> reduces to maximizing the <em>expected complete-data log-likelihood</em>,</p>
+<p><span class="math display">\[Q(\theta) = \sum_i\Big[\gamma_i\log\big(\pi_A b_{iA}\big) + (1-\gamma_i)\log\big(\pi_B b_{iB}\big)\Big],\]</span></p>
+<p>whose maximizers are soft heads-over-flips counts:</p>
+<p><span class="math display">\[\boxed{\;\theta_A = \frac{\sum_i \gamma_i\, x_i}{m\sum_i \gamma_i}, \qquad \theta_B = \frac{\sum_i (1-\gamma_i)\, x_i}{m\sum_i (1-\gamma_i)}\;}\]</span></p>
+<p>Each row contributes to each coin in proportion to its responsibility — the “soft counting” from Part 1, now derived.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-6-contents" aria-controls="callout-6" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Is q(z=A) the same kind of thing as the prior π_A?
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-6" class="callout-6-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>Same <em>type</em> (both probabilities about which coin), different <em>role</em>. <span class="math inline">\(\pi_A\)</span> is the <strong>prior</strong> — the chance coin A is picked <em>before</em> seeing the flips (fixed, same for every row, here <span class="math inline">\(0.5\)</span>). <span class="math inline">\(q(z_i{=}A)\)</span> is meant to be a <strong>posterior</strong> — the belief about <em>this row’s</em> coin <em>after</em> folding in its flips (per-row, carries the subscript <span class="math inline">\(i\)</span>). They’re linked by Bayes’ rule, with <span class="math inline">\(\pi_A\)</span> sitting <em>inside</em> the formula for the best <span class="math inline">\(q\)</span>: start at the prior <span class="math inline">\(0.5\)</span>, update on 9 heads, land at <span class="math inline">\(\approx 0.80\)</span>. The data is exactly what separates the two.</p>
+</div>
+</div>
+</div>
+</section>
+<section id="watching-the-bounds-touch-and-climb-for-real" class="level2">
+<h2 class="anchored" data-anchor-id="watching-the-bounds-touch-and-climb-for-real">Watching the bounds touch and climb, for real</h2>
+<p>Running EM on the five experiments from a seed of <span class="math inline">\(\theta_A = 0.55\)</span>, <span class="math inline">\(\theta_B = 0.45\)</span> produces this trajectory:</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="fig_convergence.png" class="img-fluid figure-img"></p>
+<figcaption>EM convergence from an off-target seed</figcaption>
+</figure>
+</div>
+<p>And here is the actual ELBO geometry (1-D slice fixing <span class="math inline">\(\theta_B = 0.52\)</span>, varying <span class="math inline">\(\theta_A\)</span>). The blue curve is the true log-likelihood; each amber dome is a real ELBO built at one iterate:</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="fig_elbo_bounds.png" class="img-fluid figure-img"></p>
+<figcaption>Real ELBO bounds touching the log-likelihood and being climbed</figcaption>
+</figure>
+</div>
+<p>Read it left to right:</p>
+<ul>
+<li>Each amber dome <strong>touches</strong> the blue curve at a green dot (where <span class="math inline">\(q\)</span> was set to the posterior, so KL = 0).</li>
+<li>The M-step <strong>climbs</strong> the dome to its peak — the orange diamond.</li>
+<li>Look directly <em>above</em> each diamond: the blue curve is higher. That vertical gap is the <strong>KL reopening</strong>, and it’s why the next green dot (the next E-step) sits up on blue, not down at the diamond. You gained <em>more</em> true likelihood than the bound alone promised.</li>
+<li>The green dots march monotonically up blue toward <span class="math inline">\(\theta_A^\star \approx 0.80\)</span>.</li>
+</ul>
+</section>
+<section id="the-loop-compactly" class="level2">
+<h2 class="anchored" data-anchor-id="the-loop-compactly">The loop, compactly</h2>
+<p><span class="math display">\[\theta^{(t)} \;\xrightarrow{\;\text{E: } \gamma_i^{(t)} = p(z_i\mid x_i,\theta^{(t)})\;}\; \gamma^{(t)} \;\xrightarrow{\;\text{M: } \theta_A=\frac{\sum\gamma_i x_i}{m\sum\gamma_i},\ \theta_B=\frac{\sum(1-\gamma_i)x_i}{m\sum(1-\gamma_i)}\;}\; \theta^{(t+1)}.\]</span></p>
+<p>Repeat until <span class="math inline">\(\theta\)</span> stops moving.</p>
+<hr>
+<p>← <a href="../../articles/em-algorithm/01-intuition.html">Part 1 — The Intuition</a> | Continue to <strong><a href="../../articles/em-algorithm/03-rigorous.html">Part 3 — The Rigorous Treatment →</a></strong></p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/aelhossiny\.github\.io");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+            // target, if specified
+            link.setAttribute("target", "_blank");
+            if (link.getAttribute("rel") === null) {
+              link.setAttribute("rel", "noopener");
+            }
+            // default icon
+            link.classList.add("external");
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>© 2026 Ahmed Elhossiny · Memorial Sloan Kettering Cancer Center</p>
+</div>   
+    <div class="nav-footer-center">
+<p>Built with <a href="https://quarto.org">Quarto</a></p>
+</div>
+    <div class="nav-footer-right">
+      <ul class="footer-items list-unstyled">
+    <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/aelhossiny">
+      <i class="bi bi-github" role="img">
+</i> 
+    </a>
+  </li>  
+</ul>
+    </div>
+  </div>
+</footer>
+
+
+
+
+<script src="../../site_libs/quarto-html/zenscroll-min.js"></script>
+</body></html>

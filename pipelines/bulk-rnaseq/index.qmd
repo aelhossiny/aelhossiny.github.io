@@ -1,0 +1,132 @@
+---
+title: "Bulk RNA-seq Pipeline"
+subtitle: "From raw reads to differential expression and pathway analysis"
+sidebar: bulk-rnaseq
+---
+
+## Overview
+
+This pipeline provides a comprehensive workflow for analyzing bulk RNA-sequencing data. It covers everything from quality control of raw reads to differential gene expression analysis and functional enrichment.
+
+```{mermaid}
+flowchart LR
+    A[Raw FASTQ] --> B[QC & Trimming]
+    B --> C[Alignment]
+    C --> D[Quantification]
+    D --> E[Differential Expression]
+    E --> F[Pathway Analysis]
+    
+    style A fill:#e74c3c,color:white
+    style B fill:#f39c12,color:white
+    style C fill:#3498db,color:white
+    style D fill:#9b59b6,color:white
+    style E fill:#1abc9c,color:white
+    style F fill:#27ae60,color:white
+```
+
+## Pipeline Steps
+
+::: {.pipeline-card}
+### 1. Preprocessing & Quality Control
+[**Read More →**](01-preprocessing.qmd)
+
+Quality assessment with FastQC/MultiQC and adapter trimming with fastp or Trimmomatic.
+
+::: {.tag-cloud}
+[FastQC]{.tag}
+[MultiQC]{.tag}
+[fastp]{.tag}
+[Bash]{.tag}
+:::
+:::
+
+::: {.pipeline-card}
+### 2. Read Alignment
+[**Read More →**](02-alignment.qmd)
+
+Alignment to reference genome using STAR or HISAT2.
+
+::: {.tag-cloud}
+[STAR]{.tag}
+[HISAT2]{.tag}
+[SAMtools]{.tag}
+:::
+:::
+
+::: {.pipeline-card}
+### 3. Quantification
+[**Read More →**](03-quantification.qmd)
+
+Gene-level count quantification using featureCounts or Salmon.
+
+::: {.tag-cloud}
+[featureCounts]{.tag}
+[Salmon]{.tag}
+[R]{.tag}
+:::
+:::
+
+::: {.pipeline-card}
+### 4. Differential Expression Analysis
+[**Read More →**](04-differential-expression.qmd)
+
+Statistical analysis of differential gene expression using DESeq2 or edgeR.
+
+::: {.tag-cloud}
+[DESeq2]{.tag}
+[edgeR]{.tag}
+[limma]{.tag}
+[R]{.tag}
+:::
+:::
+
+::: {.pipeline-card}
+### 5. Pathway & Functional Analysis
+[**Read More →**](05-pathway-analysis.qmd)
+
+Gene set enrichment analysis and pathway visualization.
+
+::: {.tag-cloud}
+[clusterProfiler]{.tag}
+[fgsea]{.tag}
+[enrichplot]{.tag}
+[R]{.tag}
+:::
+:::
+
+## Quick Start
+
+```{r}
+#| eval: false
+#| code-fold: false
+
+# Install required packages
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install(c("DESeq2", "clusterProfiler", "org.Hs.eg.db", "enrichplot"))
+install.packages(c("tidyverse", "pheatmap", "ggrepel"))
+```
+
+## Required Inputs
+
+| Input | Description | Format |
+|-------|-------------|--------|
+| Raw reads | Paired-end FASTQ files | `.fastq.gz` |
+| Reference genome | Genome FASTA file | `.fa` |
+| Gene annotation | GTF annotation file | `.gtf` |
+| Sample metadata | Sample information | `.csv` |
+
+## Expected Outputs
+
+- Quality control reports (HTML)
+- Aligned BAM files
+- Gene count matrix
+- Differential expression results (CSV)
+- Enrichment analysis results
+- Publication-ready figures
+
+## References
+
+- Love MI, Huber W, Anders S (2014). "Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2." *Genome Biology*, 15:550.
+- Wu T, et al. (2021). "clusterProfiler 4.0: A universal enrichment tool for interpreting omics data." *The Innovation*, 2(3):100141.

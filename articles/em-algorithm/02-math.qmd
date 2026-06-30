@@ -1,0 +1,207 @@
+---
+title: "The EM Algorithm, Part 2: Math with Intuition"
+date: "2025-06-08"
+description: "The ELBO, Jensen's inequality, KL divergence, and the E/M-step derivations — every equation explained in plain words alongside the two-coin example."
+categories: [statistics, machine-learning, algorithms, EM-algorithm]
+number-sections: false
+toc: true
+toc-depth: 3
+---
+
+> **Three-part series.**
+> 1. [The Intuition](01-intuition.qmd) — the idea, no heavy math.
+> 2. **Math with Intuition** *(you are here)* — every equation, explained in plain words.
+> 3. [The Rigorous Treatment](03-rigorous.qmd) — proofs, calculus, and the formal guarantees.
+
+This part keeps the two-coin example from Part 1 and builds the full machinery: the marginal likelihood, the obstacle that makes it hard, Jensen's inequality, the ELBO, the KL gap, and the geometry that guarantees EM works.
+
+---
+
+## Notation
+
+Per experiment $i$: $x_i$ = heads observed (data), $z_i \in \{A,B\}$ = which coin was used (latent). Parameters $\theta = (\theta_A, \theta_B)$; mixing priors $\pi_A = \pi_B = \tfrac12$; $m = 10$ flips. One coin gives a binomial:
+
+$$p(x_i \mid z_i = A, \theta) = \binom{m}{x_i}\,\theta_A^{x_i}(1-\theta_A)^{m-x_i}.$$
+
+For brevity write $b_{iA} = \binom{m}{x_i}\theta_A^{x_i}(1-\theta_A)^{m-x_i}$ (and similarly $b_{iB}$).
+
+## The thing we actually want to maximize
+
+We only see the $x_i$, so the quantity to maximize is the **marginal log-likelihood**, summing the latent coin out:
+
+$$\ell(\theta) = \sum_i \log p(x_i \mid \theta) = \sum_i \log \sum_{z_i \in \{A,B\}} p(x_i, z_i \mid \theta).$$
+
+Reading it from the inside out:
+
+- **The joint** $p(x_i, z_i \mid \theta) = p(z_i)\,p(x_i\mid z_i,\theta)$ — "pick a coin, then flip it." For the two coins: $\pi_A b_{iA}$ and $\pi_B b_{iB}$.
+- **The inner sum $\sum_{z_i}$** is *marginalization*: you can't see the coin, so you add up over every value it could take. The result is the per-experiment marginal, a **mixture of two binomials**:
+
+$$p(x_i \mid \theta) = \pi_A\,b_{iA} + \pi_B\,b_{iB}.$$
+
+- **The $\log$** puts it on log scale; **the outer $\sum_i$** adds across the (independent) experiments.
+
+::: {.callout-note collapse="true"}
+### Do we get the marginal first then take the log, or take the log of the sum then add up?
+
+Both — they're the same number, via one log identity. There are **two** sums: an inner sum over the *coin* (builds each marginal) and an outer combination over *experiments*. Because experiments are independent, the whole-dataset likelihood is a **product** of the marginals:
+
+$$L(\theta) = \prod_i p(x_i\mid\theta) = \prod_i\Big[\sum_{z_i} p(x_i,z_i\mid\theta)\Big].$$
+
+Take one log of that product, and $\log(ab) = \log a + \log b$ turns it into a sum of logs:
+
+$$\ell(\theta) = \sum_i \log p(x_i\mid\theta) = \sum_i \log \sum_{z_i} p(x_i,z_i\mid\theta).$$
+
+So "multiply the marginals, then log" and "log each marginal, then add" land on the identical $\ell(\theta)$. In practice we always use the sum-of-logs form (adding beats multiplying tiny probabilities that underflow).
+:::
+
+## The obstacle: log of a sum
+
+Look at the shape of the right-hand side: a $\log$ wrapped around a **sum**.
+
+$$\log p(x_i\mid\theta) = \log\big(\pi_A b_{iA} + \pi_B b_{iB}\big).$$
+
+You can't distribute it — $\log(a+b) \neq \log a + \log b$ — so the two unknowns $\theta_A$, $\theta_B$ stay tangled inside that log, with no clean derivative and no closed-form maximizer. **This single obstacle is the entire reason EM exists.**
+
+Contrast the easy world: if the coin labels were *known*, the log would sit on a single binomial, and $\log b_{iA} = \text{const} + x_i\log\theta_A + (m-x_i)\log(1-\theta_A)$ — a tidy, separable expression you can maximize in closed form. The sum is what ruins this.
+
+## Slipping in a helper distribution q
+
+Introduce a **free distribution** $q(z_i)$ over the latent coin — just two numbers $q(z_i{=}A)$ and $q(z_i{=}B)$ summing to 1. "Free" means *we* choose it, and the algebra below holds for *any* choice.
+
+Multiply and divide inside the sum by $q$ (which equals multiplying by 1):
+
+$$p(x_i \mid \theta) = \sum_{z_i} q(z_i)\,\frac{p(x_i, z_i\mid\theta)}{q(z_i)} = \mathbb{E}_{q}\!\left[\frac{p(x_i, z_i\mid\theta)}{q(z_i)}\right].$$
+
+That last equality is just the **definition of expectation**, $\mathbb{E}_q[g(z)] = \sum_z q(z)\,g(z)$. So the marginal is now "log of an expectation," $\log\mathbb{E}_q[\cdot]$.
+
+::: {.callout-note collapse="true"}
+### Why does dividing by q turn the sum into an expectation, and what does "free" mean?
+
+An expectation *is* the pattern "sum over outcomes of (probability) × (value)." By writing $\sum_{z_i} q(z_i)\cdot\frac{p}{q(z_i)}$ we forced the marginal into exactly that shape, with $q$ as the weighting and $\frac{p}{q}$ as the function being averaged. The two copies of $q$ don't cancel *conceptually*: the front one is a probability weight, the bottom one is part of the function — and that separation is what sets up the next step.
+
+"Free" means $q$ is a variable we control, constrained only by being a distribution ($q(z_i)\ge 0$, sums to 1, and nonzero wherever the joint is). The whole point of slipping it in is to reshape the stubborn $\log\sum$ into a $\log\mathbb{E}$ that Jensen's inequality can act on.
+:::
+
+## Jensen's inequality
+
+For a **concave** function $\varphi$ (like $\log$), the function of an average is at least the average of the function:
+
+$$\varphi\big(\mathbb{E}[X]\big) \ge \mathbb{E}\big[\varphi(X)\big].$$
+
+Geometrically: a concave curve bulges *above* its chords, so evaluating the curve at the average (a point on the curve) sits at or above averaging two curve-heights (a point on the chord).
+
+![Jensen's inequality: chord below curve, with the Jensen gap](fig_jensen.png)
+
+The green dot is "function of the average" (on the curve); the orange dot is "average of the function" (on the chord); the vertical distance is the **Jensen gap**, which is zero only when the two inputs coincide.
+
+Applying this to our $\log\mathbb{E}_q[\cdot]$ — concave $\log$, so push it inside at the cost of an inequality:
+
+$$\log p(x_i\mid\theta) = \log\mathbb{E}_q\!\left[\frac{p(x_i,z_i\mid\theta)}{q(z_i)}\right] \;\ge\; \mathbb{E}_q\!\left[\log\frac{p(x_i,z_i\mid\theta)}{q(z_i)}\right] = \sum_{z_i} q(z_i)\log\frac{p(x_i,z_i\mid\theta)}{q(z_i)}.$$
+
+That right-hand side is the **ELBO**, written $\mathcal{L}(q,\theta)$. The $\log$ now sits **outside** the sum, on single product terms — exactly the splittable, differentiable form we wanted.
+
+::: {.callout-note collapse="true"}
+### Doesn't splitting that log violate log(a+b) ≠ log(a)+log(b)?
+
+No — the thing inside this log is a **quotient**, not a sum. $\log$ splits over $\times$ and $\div$ freely ($\log\frac{a}{b} = \log a - \log b$); it's only $\log(a+b)$ that's forbidden. The sum over $z_i$ is now **outside** the log (it's the expectation's weighting), while **inside** each log there's just one fraction $\frac{p(x_i,z_i\mid\theta)}{q(z_i)}$. Jensen's whole job was to relocate the sum from inside the log (forbidden) to outside it (fine) — which is precisely what makes this split legal.
+:::
+
+## The exact gap is a KL divergence
+
+The inequality has an exact bookkeeping form. For *any* $q$:
+
+$$\boxed{\;\log p(x_i \mid \theta) = \underbrace{\mathcal{L}(q,\theta)}_{\text{ELBO}} + \underbrace{\mathrm{KL}\big(q(z_i)\,\|\,p(z_i\mid x_i,\theta)\big)}_{\ge\,0}\;}$$
+
+The gap between the true log-likelihood and the ELBO is exactly the KL divergence between your chosen $q$ and the **posterior** $p(z_i\mid x_i,\theta)$. The KL has two properties that drive everything:
+
+- $\mathrm{KL} \ge 0$ always — so the ELBO is always a *lower* bound;
+- $\mathrm{KL} = 0$ **iff** $q(z_i) = p(z_i\mid x_i,\theta)$ — so the bound is *tight* exactly when $q$ is the posterior.
+
+On the coins, with $q(z{=}A) = w$ and posterior $p(z{=}A\mid x,\theta) = \gamma$, the KL is just
+
+$$\mathrm{KL} = w\log\frac{w}{\gamma} + (1-w)\log\frac{1-w}{1-\gamma},$$
+
+a concrete number measuring how far your working belief $w$ is from the row's actual posterior $\gamma$ — zero when they match.
+
+## The two steps, and the geometry
+
+Rearranging the boxed identity, $\mathcal{L}(q,\theta) = \ell(\theta) - \mathrm{KL}$. Hold $\theta$ fixed: $\ell(\theta)$ is a constant, so **maximizing the ELBO over $q$ = minimizing the KL over $q$** — a seesaw. Both bottom out at $q = $ posterior.
+
+**E-step (touch).** Set $q = p(z_i\mid x_i,\theta_{\text{old}})$, the posterior at your current spot. This zeroes the KL *at $\theta_{\text{old}}$*, so the ELBO rises up to **touch** the true curve right where you stand.
+
+**M-step (climb).** Freeze that $q$ and maximize the ELBO over $\theta$ — $\theta_{\text{new}}$. Since the bound is easy and decoupled, this is a closed-form update.
+
+**Why climbing the bound raises the truth** — chain three facts:
+
+$$\ell(\theta_{\text{new}}) \underbrace{\ge}_{\text{bound below truth}} \mathcal{L}(q,\theta_{\text{new}}) \underbrace{\ge}_{\theta_{\text{new}}\text{ is the peak}} \mathcal{L}(q,\theta_{\text{old}}) \underbrace{=}_{\text{touch}} \ell(\theta_{\text{old}}).$$
+
+End to end: $\ell(\theta_{\text{new}}) \ge \ell(\theta_{\text{old}})$. The true log-likelihood never decreases.
+
+![One EM step: the bound touches the true curve, then is climbed](fig_minorize_maximize.png)
+
+Because the dome reopens a gap once you step off $\theta_{\text{old}}$, you rebuild it each round — a staircase of bounds walking up the true curve:
+
+![EM as a staircase of lower bounds climbing the log-likelihood](fig_staircase.png)
+
+The steps shrink near the top: as you approach the optimum, each bound's peak sits almost directly above its touch point (the bound is *tangent* to $\ell$ there), so there's less left to climb — which is both why EM converges and why its tail is slow.
+
+::: {.callout-note collapse="true"}
+### Why does the bound curve down instead of following the true curve?
+
+Because the $q$ in the bound is **frozen** at its $\theta_{\text{old}}$ value during the climb. The gap is $\mathrm{KL}(q\,\|\,p(z\mid x,\theta))$, which compares your frozen $q$ to the posterior *at the current $\theta$*. At $\theta_{\text{old}}$ they match (KL = 0, touch). Step away and the posterior shifts while $q$ does not, so KL grows and the dome sags below the true curve by exactly that amount. If you let $q$ track the posterior at every $\theta$, KL would be zero everywhere and the dome would *be* the true log-likelihood — with all its intractability back. The sag is the price of making the bound easy; re-touching each round is how EM keeps paying it.
+:::
+
+::: {.callout-note collapse="true"}
+### How can q be the "true posterior" if I don't know the right θ yet?
+
+$q$ is the true posterior **given your current $\theta$**, not given the correct $\theta^\star$. The posterior under the right parameters, $p(z\mid x,\theta^\star)$, is indeed uncomputable — but EM never needs it. It only ever computes $p(z\mid x,\theta_{\text{old}})$, which uses the concrete numbers you're holding. Within one iteration EM treats $\theta_{\text{old}}$ *as if* it were correct: "suppose the biases are $(0.6, 0.5)$; then the mathematically correct belief about the coins is exactly this posterior." That conditional is exactly true regardless of whether $(0.6,0.5)$ is right. Feeding this self-consistent-but-slightly-wrong posterior into the M-step yields a *less* wrong $\theta$; at convergence, current $\theta$ has become $\theta^\star$ and the two notions of "true posterior" finally coincide.
+:::
+
+## The E-step and M-step on the coins
+
+**E-step (responsibilities).** Setting $q$ to the posterior gives, by Bayes' rule,
+
+$$\gamma_i = p(z_i = A\mid x_i,\theta) = \frac{\pi_A\,\theta_A^{x_i}(1-\theta_A)^{m-x_i}}{\pi_A\,\theta_A^{x_i}(1-\theta_A)^{m-x_i} + \pi_B\,\theta_B^{x_i}(1-\theta_B)^{m-x_i}}.$$
+
+**M-step (weighted MLE).** Maximizing the ELBO over $\theta$ reduces to maximizing the *expected complete-data log-likelihood*,
+
+$$Q(\theta) = \sum_i\Big[\gamma_i\log\big(\pi_A b_{iA}\big) + (1-\gamma_i)\log\big(\pi_B b_{iB}\big)\Big],$$
+
+whose maximizers are soft heads-over-flips counts:
+
+$$\boxed{\;\theta_A = \frac{\sum_i \gamma_i\, x_i}{m\sum_i \gamma_i}, \qquad \theta_B = \frac{\sum_i (1-\gamma_i)\, x_i}{m\sum_i (1-\gamma_i)}\;}$$
+
+Each row contributes to each coin in proportion to its responsibility — the "soft counting" from Part 1, now derived.
+
+::: {.callout-note collapse="true"}
+### Is q(z=A) the same kind of thing as the prior π_A?
+
+Same *type* (both probabilities about which coin), different *role*. $\pi_A$ is the **prior** — the chance coin A is picked *before* seeing the flips (fixed, same for every row, here $0.5$). $q(z_i{=}A)$ is meant to be a **posterior** — the belief about *this row's* coin *after* folding in its flips (per-row, carries the subscript $i$). They're linked by Bayes' rule, with $\pi_A$ sitting *inside* the formula for the best $q$: start at the prior $0.5$, update on 9 heads, land at $\approx 0.80$. The data is exactly what separates the two.
+:::
+
+## Watching the bounds touch and climb, for real
+
+Running EM on the five experiments from a seed of $\theta_A = 0.55$, $\theta_B = 0.45$ produces this trajectory:
+
+![EM convergence from an off-target seed](fig_convergence.png)
+
+And here is the actual ELBO geometry (1-D slice fixing $\theta_B = 0.52$, varying $\theta_A$). The blue curve is the true log-likelihood; each amber dome is a real ELBO built at one iterate:
+
+![Real ELBO bounds touching the log-likelihood and being climbed](fig_elbo_bounds.png)
+
+Read it left to right:
+
+- Each amber dome **touches** the blue curve at a green dot (where $q$ was set to the posterior, so KL = 0).
+- The M-step **climbs** the dome to its peak — the orange diamond.
+- Look directly *above* each diamond: the blue curve is higher. That vertical gap is the **KL reopening**, and it's why the next green dot (the next E-step) sits up on blue, not down at the diamond. You gained *more* true likelihood than the bound alone promised.
+- The green dots march monotonically up blue toward $\theta_A^\star \approx 0.80$.
+
+## The loop, compactly
+
+$$\theta^{(t)} \;\xrightarrow{\;\text{E: } \gamma_i^{(t)} = p(z_i\mid x_i,\theta^{(t)})\;}\; \gamma^{(t)} \;\xrightarrow{\;\text{M: } \theta_A=\frac{\sum\gamma_i x_i}{m\sum\gamma_i},\ \theta_B=\frac{\sum(1-\gamma_i)x_i}{m\sum(1-\gamma_i)}\;}\; \theta^{(t+1)}.$$
+
+Repeat until $\theta$ stops moving.
+
+---
+
+← [Part 1 — The Intuition](01-intuition.qmd) | Continue to **[Part 3 — The Rigorous Treatment →](03-rigorous.qmd)**

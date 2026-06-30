@@ -1,0 +1,118 @@
+---
+title: "The EM Algorithm, Part 1: The Intuition"
+date: "2025-06-01"
+description: "Understanding the Expectation-Maximization algorithm through intuition and the two-coin example — no heavy math required."
+categories: [statistics, machine-learning, algorithms, EM-algorithm]
+number-sections: false
+toc: true
+toc-depth: 3
+---
+
+> **This is a three-part series.**
+> 1. **The Intuition** *(you are here)* — the idea, no heavy math.
+> 2. [Math with Intuition](02-math.qmd) — every equation, explained in plain words.
+> 3. [The Rigorous Treatment](03-rigorous.qmd) — proofs, calculus, and the formal guarantees.
+
+---
+
+## The problem: a chicken-and-egg puzzle
+
+The Expectation–Maximization (EM) algorithm exists to solve one frustrating situation: **you want to estimate some parameters, but to estimate them you'd need to know a hidden label, and to know the hidden label you'd need the parameters.** Each one would unlock the other, and you have neither.
+
+EM breaks the loop by *guessing*, then refining.
+
+## The running example: two coins
+
+Imagine two biased coins, **A** and **B**, with unknown head-probabilities $\theta_A$ and $\theta_B$. Someone runs five experiments. In each one they secretly grab one of the two coins, flip it 10 times, and write down **only the number of heads — not which coin they used**:
+
+| Experiment | Heads (out of 10) |
+|:----------:|:-----------------:|
+| 1 | 5 |
+| 2 | 9 |
+| 3 | 8 |
+| 4 | 4 |
+| 5 | 7 |
+
+Your goal is to recover $\theta_A$ and $\theta_B$. The annoying part is the **missing label** — which coin produced each row. That hidden label is the *latent variable*.
+
+### Why it's circular
+
+- If a kind soul told you the coin for each row, this would be trivial: pool all the A-rows, count heads over flips, done.
+- Conversely, if someone handed you $\theta_A$ and $\theta_B$, you could guess which coin produced each row (a row with 9 heads probably came from the more heads-happy coin).
+
+But you have **neither**.
+
+::: {.callout-note collapse="true"}
+### What's the difference between θ, θ_A, and θ_B?
+
+$\theta_A$ is the bias of coin A — the probability a single flip of coin A lands heads (one number between 0 and 1). $\theta_B$ is the same for coin B. $\theta$ (no subscript) is just shorthand for **both of them bundled together**, the full parameter set:
+
+$$\theta = (\theta_A, \theta_B).$$
+
+So $\theta$ isn't a third quantity with its own value — it's the container. Writing $p(x_i \mid \theta)$ means "given both biases at once." (If we also wanted to learn how often each coin gets *picked*, we'd fold those mixing probabilities in too, but here we fix them at 50/50.)
+:::
+
+## The fix: guess, soften, repeat
+
+Start with a guess, say $\theta_A = 0.6$, $\theta_B = 0.5$. Now instead of forcing a hard "this row is A" decision, EM does something gentler, alternating two steps:
+
+**E-step (Expectation).** For each row, use the current guesses to compute the **probability** it came from each coin. The 9-heads row comes out to roughly **80% A / 20% B**; the 4-heads row to roughly **35% A / 65% B**. These soft probabilities are called *responsibilities* — coin A is "responsible" for 80% of the 9-heads row.
+
+**M-step (Maximization).** Re-estimate the coins, but let every row contribute to *both* coins in proportion to those responsibilities. The 9-heads row dumps 80% of its 9 heads into A's tally and 20% into B's. It's a weighted version of the trivial counting you'd do if labels were known — using **soft counts** instead of hard ones.
+
+Then take the new $\theta$'s back to the E-step and go around again. Each loop the responsibilities sharpen and the estimates improve. The hidden labels and the parameters **bootstrap each other into existence**.
+
+::: {.callout-note collapse="true"}
+### How is the 80/20 split actually computed?
+
+It compares how well each coin explains that row's outcome. For a row with $x$ heads out of $m=10$ flips, the responsibility of coin A is
+
+$$\gamma = \frac{\theta_A^{x}(1-\theta_A)^{m-x}}{\theta_A^{x}(1-\theta_A)^{m-x} + \theta_B^{x}(1-\theta_B)^{m-x}}.$$
+
+(The prior 50/50 and the binomial coefficient cancel between top and bottom.) For the **9-heads** row with $\theta_A = 0.6$, $\theta_B = 0.5$:
+
+$$L_A = 0.6^{9}\cdot 0.4^{1} = 0.004031,\qquad L_B = 0.5^{10} = 0.000977,$$
+$$\gamma = \frac{0.004031}{0.004031 + 0.000977} \approx 0.805.$$
+
+For the **4-heads** row: $L_A = 0.6^4\cdot 0.4^6 = 0.000531$, $L_B = 0.5^{10} = 0.000977$, giving $\gamma \approx 0.352$. More heads tilts the ratio toward the heads-leaning coin; fewer heads tilts it toward the fair one.
+:::
+
+::: {.callout-note collapse="true"}
+### Are we solving for θ or for the hidden labels z?
+
+We are solving for **θ** (the coin biases). That's the answer you report: "coin A lands heads ~80% of the time." The hidden labels $z_i$ (which coin made each row) are a **nuisance** — they only appear because they were never recorded. EM computes *beliefs* about them (the responsibilities) purely as an intermediate device to make the $\theta$ update possible. Think of the responsibilities as **scaffolding** and $\theta$ as the **building**: you keep rebuilding the scaffolding only because it lets you raise the building higher each round, and you throw it away at the end.
+:::
+
+## Why it keeps getting better: the surrogate-dome picture
+
+Here's the mental model that makes EM click. Picture the quality of a parameter guess as a height on a hill — the **true likelihood** of the data. You want the summit, but the hill is shrouded in fog: you can't survey it or optimize it directly.
+
+So at your feet you lay down a **smooth dome** — a simpler surrogate — engineered with two properties:
+
+1. it **touches** the hill exactly where you're standing, and
+2. it **never pokes above** the hill anywhere.
+
+You can easily find the top of the dome (that's the M-step). Walk there. Because the dome never exceeded the hill, the hill at your new spot is **at least as high** as the dome's peak — which was at least as high as where you started. So you've climbed the real hill without ever seeing it. Then you lay a fresh dome at the new spot and repeat.
+
+That dome is the **ELBO** (Evidence Lower BOund), and the "touch then climb" rhythm is exactly the E-step and M-step. The fact that the dome stays *below* the hill is what makes climbing it safe — you can never be tricked into walking somewhere that looks good on the surrogate but is bad in reality.
+
+> The deeper "why" — why the dome touches where it does, why it stays below, and the inequality that guarantees the climb — is the heart of [Part 2](02-math.qmd).
+
+## Watching it actually converge
+
+Here's EM run for real on the five experiments above, deliberately seeded **off-target** at $\theta_A = 0.55$, $\theta_B = 0.45$:
+
+![EM convergence: parameters and log-likelihood vs. iteration](fig_convergence.png)
+
+Two things worth noticing, both of which the theory predicts:
+
+- **The log-likelihood (bottom panel) never decreases.** That's EM's core guarantee — every round either improves the fit of the data or leaves it unchanged.
+- **$\theta_B$ overshoots.** It jumps up to $0.577$ on the first step, then drifts back down to $0.520$. That's allowed: EM only promises the *overall likelihood* climbs monotonically, **not** that each individual parameter marches straight to its target. From a bad seed the first responsibilities are misjudged, so the first update over-corrects, and later rounds walk it back.
+
+The run settles at $\theta_A^\star \approx 0.80$, $\theta_B^\star \approx 0.52$ — the biases that best explain the five observed heads-counts.
+
+## The whole algorithm in one breath
+
+> **Fill in, then re-fit.** The E-step fills in the missing labels with their expected (soft) values given where you currently stand; the M-step re-fits the parameters as if those soft labels were the data. Because the fill-in depended on the old parameters, you fill in again at the new spot — and around you go, until nothing moves.
+
+Continue to **[Part 2 — Math with Intuition →](02-math.qmd)**

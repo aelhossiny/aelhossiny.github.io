@@ -1,0 +1,1175 @@
+---
+title: "Variant Calling"
+author: 
+    name: "Ahmed M. Elhossiny"
+    email: "hossiny@umich.edu"
+execute: 
+    eval: false
+date-modified: last-modified
+bibliography: references.bib
+---
+
+# Introduction
+
+Here we will demonstrate variant calling for Whole Exome Sequencing (WES) data. DNA variants can be germline (inherited from parents) or somatic (acquired during life) ([Read more](https://microbenotes.com/somatic-vs-germline-mutation/)). There are many genomic mutation events that can occur but we will limit our analysis here to Single Nucleotide Variations (SNVs) and Insertion-Deletions (Indels). While it is recommended to include a matched normal samples for variant calling, we can run analysis when we have tumor samples only using commmon germline variants, panel of normal and reference genome as a reference.
+
+Here we will demonstrate using GATK tools for variant calling: Mutect2 (for somatic variant calling) and Haplotype Caller (for germline variant calling). We will also demonstrate using Strelka for both somatic and germline variant calling. User can either use one of the two tools or both for comparison. If both tools are used, it is recommended to take the intersection of the two results for higher confidence calls, or use the union of the two results for more comprehensive calls, but with lower confidence.
+
+We will also show how to visualize the results using `maftools` R package.
+
+# SNV Analysis Pipelines
+
+1. Data Preprocessing (Prevoiusly demonstrated [here](./Data_Preprocessing.qmd))
+
+2. **Somatic** Variant Calling using GATK Mutect2
+  - [Human Samples](#human_somatic_variant_calling_mutect2)
+  - [Mouse Samples](#mouse_somatic_variant_calling_mutect2)
+
+3. [Parsing Soamtic SNV Calls Output](#parsing_variant_calling_output)
+
+4. [**Germline** Variant Calling using GATK Haplotype Caller](#germline_variant_calling)
+
+5. [**Somatic and Germline** Variant Calling using Strelka2](#strelka_variant_calling)
+
+6. [Variant Filtering and Statistics](#variant_filtering_statistics)
+
+# Somatic Variant Calling using GATK Mutect2 (Human Samples) {#human_somatic_variant_calling_mutect2}
+
+After data preprocessing demonstrated [earlier](./Data_Preprocessing.qmd), Mutect2 Workflow goes as follows:
+
+* **Mutect2** is then used on the bam file after recalibration for variant calling. Since we are using the tumor-only mode here, we are using the reference "panel of normal" provided by GATK to account for common sequencing artefacts. Also, we are using GATK recommneded germline resource, the gnomAD 1000 genome allele frequencies.
+* **GetPileupSummaries** and **CalculateContamination** are then used to estimate the fraction of reads due to cross-sample contamination in the recommended common sites by GATK references
+* **FilterMutectCalls** tags variants whether they pass different parameters or not, giving a "PASS" tag to true somatic variant calls that pass them, and a reason for not passing otherwise (e.g., germline, base_qual, ... etc)
+* Finally, **Funcotator** annotates the vcf file for genes overlapping variant calls and their protein level alteration, producing annotated `.vcf` and `.maf` file
+* Downstream analysis using **maftools** is reproduced here in this notebook
+
+We have downloaded these files in the [Data_Preprocessing](./Data_Preprocessing.qmd#download_references) step and placed them in the `data/references` folder as follows
+
+::: {.callout-important collapse="true" title="Downloading References"}
+```bash
+refDir=data/references
+gsutil cp gs://genomics-public-data/resources/broad/hg38/v0/Homo_sapiens_assembly38.* $refDir
+gsutil cp gs://gatk-best-practices/somatic-hg38/1000g_pon.hg38.* $refDir
+gsutil cp gs://gatk-best-practices/somatic-hg38/af-only-gnomad.hg38.* $refDir
+gsutil cp gs://gatk-best-practices/somatic-hg38/small_exac_common_3.hg38.* $refDir
+gatk FuncotatorDataSourceDownloader --somatic --validate-integrity --extract-after-download -O $refDir
+```
+:::
+
+Please note that we will use the bam files here after running BaseQualityScoreRecalibration step from the [Data_Preprocessing](./Data_Preprocessing.qmd) section.
+
+## Running Mutect2
+
+```bash
+ref=path/to/referenece_genome.fa
+pon=path/to/1000g_pon.hg38.vcf.gz
+gr_res=path/to/af-only-gnomad.hg38.vcf.gz
+variants=data/references/small_exac_common_3.hg38.vcf.gz
+
+## GATK Mutect2
+gatk Mutect2 \
+-R $ref \
+-I <sample_bam> \
+--germline-resource $gr_res \
+--panel-of-normals $pon \
+-O <output_vcf>
+
+## GATK Result Filteration
+echo "::> GATK Filteration <::"
+gatk GetPileupSummaries \
+-I <sample_bam> \
+-V $variants \
+-L $variants \
+-O <output_pileup_table>
+
+gatk CalculateContamination \
+-I <output_pileup_table> \
+-O <output_contamination_table>
+
+gatk FilterMutectCalls \
+-R $ref \
+-V <output_vcf> \
+-O <output_vcf_w_QC> \
+--contamination-table <output_contamination_table>table
+
+## Filter VCF files
+bcftools view -f PASS <output_vcf_w_QC> \
+-O z -o <output_filtered_vcf>
+
+tabix <output_filtered_vcf>
+
+## GATK Result Annotation
+gatk Funcotator \
+-R $ref \
+-V <output_filtered_vcf> \
+-O <output_filtered_annotated_vcf> \
+--output-file-format VCF \
+--data-sources-path data/references/funcotator_dataSources.v1.7.20200521s \
+--ref-version hg38 \
+--annotation-default Tumor_Sample_Barcode:<sample_name> \
+--remove-filtered-variants
+
+gatk Funcotator \
+-R $ref \
+-V <output_filtered_vcf> \
+-O <output_filtered_annotated_maf> \
+--output-file-format MAF \
+--data-sources-path data/references/funcotator_dataSources.v1.7.20200521s \
+--ref-version hg38 \
+--annotation-default Tumor_Sample_Barcode:$<sample_name> \
+--remove-filtered-variants
+```
+
+:::{.callout-important collapse="true" title="Using Annovar instead of Funcotator for variant annotation"}
+
+### Using Annovar for Variant Annotation
+
+Instead of using `Funcotator`, you can use Annovar for variant annotation
+
+#### Downloading resources
+
+```{bash}
+# Download annotation databases
+cd annovar/
+
+# Gene annotations
+./annotate_variation.pl -buildver hg38 -downdb -webfrom annovar refGene humandb/
+./annotate_variation.pl -buildver hg38 -downdb -webfrom annovar ensGene humandb/
+
+# Population frequencies
+./annotate_variation.pl -buildver hg38 -downdb -webfrom annovar gnomad30_genome humandb/
+./annotate_variation.pl -buildver hg38 -downdb -webfrom annovar gnomad211_exome humandb/
+
+# Clinical databases
+./annotate_variation.pl -buildver hg38 -downdb -webfrom annovar clinvar_20231217 humandb/
+./annotate_variation.pl -buildver hg38 -downdb -webfrom annovar cosmic70 humandb/
+
+# Functional predictions
+./annotate_variation.pl -buildver hg38 -downdb -webfrom annovar dbnsfp42a humandb/
+```
+
+#### Run ANNOVAR
+
+```{bash}
+# Convert VCF to ANNOVAR input format
+./convert2annovar.pl -format vcf4 <output_filtered_vcf> > <output.avinput>
+
+# Run table annotation
+./table_annovar.pl <output.avinput> humandb/ \
+    -buildver hg38 \
+    -out <annotated> \
+    -remove \
+    -protocol refGene,ensGene,gnomad30_genome,gnomad211_exome,clinvar_20231217,dbnsfp42a,cosmic70 \
+    -operation g,g,f,f,f,f,f \
+    -nastring . \
+    -vcfinput
+```
+
+#### ANNOVAR Output Columns
+
+| Column | Description |
+|--------|-------------|
+| Func.refGene | Functional region (exonic, intronic, etc.) |
+| Gene.refGene | Gene symbol |
+| ExonicFunc.refGene | Amino acid change type |
+| AAChange.refGene | Amino acid change details |
+| gnomAD_genome_ALL | Population allele frequency |
+| CLNSIG | ClinVar clinical significance |
+| SIFT_pred | SIFT prediction (D=deleterious) |
+| Polyphen2_HDIV_pred | PolyPhen2 prediction |
+
+### Variant Effect Predictor (VEP)
+
+VEP from Ensembl provides comprehensive annotation.
+
+```{bash}
+vep \
+    --input_file <output_filtered_vcf> \
+    --output_file <output_filtered_annotated_vcf> \
+    --format vcf \
+    --vcf \
+    --species homo_sapiens \
+    --assembly GRCh38 \
+    --cache \
+    --dir_cache ~/.vep \
+    --everything \
+    --fork 4 \
+    --offline \
+    --plugin CADD,/path/to/CADD/whole_genome_SNVs.tsv.gz \
+    --plugin SpliceAI,snv=/path/to/spliceai_scores.raw.snv.hg38.vcf.gz,indel=/path/to/spliceai_scores.raw.indel.hg38.vcf.gz
+```
+
+#### VEP Key Options
+
+| Option | Description |
+|--------|-------------|
+| `--everything` | Shortcut for common annotations |
+| `--pick` | Pick one consequence per variant |
+| `--canonical` | Annotate canonical transcript |
+| `--af_gnomad` | Add gnomAD frequencies |
+| `--sift b` | Include SIFT scores |
+| `--polyphen b` | Include PolyPhen scores |
+:::
+
+You can run the above commands for each sample separately, or you can use the following SLURM script to parallelize this workflow on multiple samples using SLURM on an HPC cluster.
+
+:::{.callout-note title="SLURM Script"}
+
+* Input : `samples_manifest.txt` that contains two columns, the first is the sample name, the second is the bam file path. Please note that we will use the bam files here after running BaseQualityScoreRecalibration step from the [Data_Preprocessing](./Data_Preprocessing.qmd) section. You'll also need the reference genome, panel of normal, germline resource, and common variants files as shown in the script.
+* Output : `.vcf` files in `outputs/Mutect2_Somatic_Variant_Calling` directory
+
+| column1 | column2 |
+|--------|---------------|
+| sample1 | path/to/sample1.bam |
+| sample2 | path/to/sample2.bam |
+| ...    | ...           |
+
+```bash
+#!/bin/bash
+
+#SBATCH --account=
+#SBATCH --job-name='variant_calling_%a'
+#SBATCH --output=logs/variant_calling_%a.log
+#SBATCH --partition=standard
+#SBATCH --mem=128G
+#SBATCH --cpus-per-task=16
+#SBATCH --time=24:00:00
+#SBATCH --array=1-<number_of_samples>
+
+## Loading Important Modules from Greatlakes HPC
+ml samtools
+ml gatk
+ml bwa
+ml bcftools
+
+## Setting up variables forc files and directories
+samples_manifest=samples_manifest.txt
+ref=data/references/Homo_sapiens_assembly38.fasta
+pon=data/references/1000g_pon.hg38.vcf.gz
+gr_res=data/references/af-only-gnomad.hg38.vcf.gz
+variants=data/references/small_exac_common_3.hg38.vcf.gz
+outputDir=outputs/Mutect2_Somatic_Variant_Calling
+mkdir -p ${outputDir}
+
+## Subsetting a sample
+sample=$(cat $samples_manifest | cut -f1 | sed -n ${SLURM_ARRAY_TASK_ID}p)
+bam=$(cat $samples_manifest | cut -f2 | sed -n ${SLURM_ARRAY_TASK_ID}p)
+outputDir=outputs/Variant_Calling/${sample}
+mkdir -p $outputDir
+
+## GATK Mutect2
+echo "::> GATK Mutect2 <::"
+gatk Mutect2 \
+-R $ref \
+-I ${outputDir}/${sample}_BQSR.bam \
+--germline-resource $gr_res \
+--panel-of-normals $pon \
+-O ${outputDir}/${sample}_calls.vcf.gz
+
+## GATK Result Filteration
+echo "::> GATK Filteration <::"
+gatk GetPileupSummaries \
+-I ${outputDir}/${sample}_BQSR.bam \
+-V $variants \
+-L $variants \
+-O ${outputDir}/${sample}_pileup.table
+
+gatk CalculateContamination \
+-I ${outputDir}/${sample}_pileup.table \
+-O ${outputDir}/${sample}_contamination.table
+
+gatk FilterMutectCalls \
+-R $ref \
+-V ${outputDir}/${sample}_calls.vcf.gz \
+-O ${outputDir}/${sample}_callsFil.vcf.gz \
+--contamination-table ${outputDir}/${sample}_contamination.table
+# --tumor-segmentation {.}_segmentation.table
+
+rm -rvf ${outputDir}/${sample}_contamination.table
+rm -rvf ${outputDir}/${sample}_pileup.table
+
+## Filter VCF files
+bcftools view -f PASS ${outputDir}/${sample}_callsFil.vcf.gz \
+-O z -o ${outputDir}/${sample}_callsFiltered.vcf.gz
+
+tabix ${outputDir}/${sample}_callsFiltered.vcf.gz
+
+## GATK Result Annotation
+echo "::> GATK Results Annotation <::"
+
+gatk Funcotator \
+-R $ref \
+-V ${outputDir}/${sample}_callsFiltered.vcf.gz \
+-O ${outputDir}/${sample}_callsFilAnn.vcf.gz \
+--output-file-format VCF \
+--data-sources-path data/references/funcotator_dataSources.v1.7.20200521s \
+--ref-version hg38 \
+--annotation-default Tumor_Sample_Barcode:${sample} \
+--remove-filtered-variants
+
+gatk Funcotator \
+-R $ref \
+-V ${outputDir}/${sample}_callsFiltered.vcf.gz \
+-O ${outputDir}/${sample}_callsFilAnn.maf \
+--output-file-format MAF \
+--data-sources-path data/references/funcotator_dataSources.v1.7.20200521s \
+--ref-version hg38 \
+--annotation-default Tumor_Sample_Barcode:${sample} \
+--remove-filtered-variants
+```
+:::
+
+
+:::{.callout-tip collapse="true" title="Convert VCF to MAF using vcf2maf"}
+
+### VCF2MAF
+
+You can also convert the merged VCF file to MAF format using `vcf2maf` tool as follows
+
+If you don't have vcf2maf you should download it using
+
+```bash
+export VCF2MAF_URL=`curl -sL https://api.github.com/repos/mskcc/vcf2maf/releases | grep -m1 tarball_url | cut -d\" -f4`
+curl -L -o mskcc-vcf2maf.tar.gz $VCF2MAF_URL; tar -zxf mskcc-vcf2maf.tar.gz; cd mskcc-vcf2maf-*
+```
+
+```bash
+ml vcftools
+
+## Setting up variables for files and directories
+resultsDir=output/Mutect2_Somatic_Variant_Calling
+outputDir=output/Mutect2_Somatic_Variant_Calling
+ref=data/references/Homo_sapiens_assembly38.fasta
+
+input_vcf=$(find ${resultsDir} -maxdepth 2 -type f -name "*FilAnn.vcf.gz" | tr "\n" " ")
+vcf-merge ${input_vcf} | bgzip -c > ${outputDir}/merged_samples.vcf.gz
+
+perl mskcc-vcf2maf-754d68a/vcf2maf.pl \
+--input-vcf ${outputDir}/merged_samples.vcf.gz \
+--output-maf ${outputDir}/merged_samples.maf \
+--ncbi-build GRCh38 \
+--ref-fasta $ref
+```
+:::
+
+::: {.callout-tip collapse="true" title="Create custom panel of normals"}
+
+### Create Custom Panel of Normal
+
+You can use normal samples to create a custom panel of normals from normal samples. This script requires a manifest file `normals_manifest.txt` that contains two columns, the first one is sample name and the second one is the processed BAM path. Again, we use the bam files after running BSQR. The results are stored in `outputs/PON` directory.
+
+| column1 | column2 |
+|--------|---------------|
+| sample1 | path/to/sample1.bam |
+| sample2 | path/to/sample2.bam |
+| ...    | ...           |
+
+This process first runs Mutect2 on the normal samples to compare them to the reference genome, then merges the results to create the panel of normals with different normal variants. This needs to run using multiple samples, therefore we are using a SLURM script here, but you can also run it on a single machine if you have enough resources.
+
+#### Running Mutect2 on normal samples
+
+```bash
+#!/bin/bash
+
+#SBATCH --account=
+#SBATCH --job-name='PanelOfNormal_Preprocess_%a'
+#SBATCH --output=logs/PanelOfNormal_Preprocess_%a.log
+
+#SBATCH --partition=standard
+#SBATCH --mem=128G
+#SBATCH --cpus-per-task=32
+#SBATCH --time=24:00:00
+
+#SBATCH --array=1-<number_of_samples>
+
+ml gatk
+ml picard-tools
+ml samtools
+
+ref=data/references/Homo_sapiens_assembly38.fasta
+outputDir=outputs/PON
+mkdir -p $outputDir
+samples_manifest=normals_manifest.txt
+sample=$(cat $samples_manifest | cut -f1 | sed -n ${SLURM_ARRAY_TASK_ID}p)
+bam_file_path=$(cat $samples_manifest | cut -f2 | sed -n ${SLURM_ARRAY_TASK_ID}p)
+
+gatk Mutect2 \
+    -R $ref \
+    -I $bam_file_path \
+    -max-mnp-distance 0 \
+    -O ${outputDir}/${sample}_for_pon.vcf.gz
+```
+
+#### Creating a panel of normal from Mutect2 results
+
+```bash
+#!/bin/bash
+
+#SBATCH --account=
+#SBATCH --job-name='PanelOfNormal'
+#SBATCH --output=logs/PanelOfNormal.log
+
+#SBATCH --partition=standard
+#SBATCH --mem=180G
+#SBATCH --cpus-per-task=32
+#SBATCH --time=48:00:00
+
+ml gatk
+ml picard-tools
+
+ref=data/references/Homo_sapiens_assembly38.fasta
+inputDir=outputs/PON
+outputDir=outputs/PON
+bait=data/references/hg38_exome_v2.0.2_targets_sorted_validated.re_annotated.bed
+
+gatk --java-options "-Xmx64g -Xms64g" GenomicsDBImport -R $ref \
+--genomicsdb-workspace-path ${inputDir}/pon_db \
+--max-num-intervals-to-import-in-parallel 32 \
+--reader-threads 32 \
+--merge-input-intervals \
+-L $bait \
+-V ${inputDir}/*_for_pon.vcf.gz 
+
+gatk CreateSomaticPanelOfNormals -R $ref \
+    -V gendb://${inputDir}/pon_db \
+    -O ${outputDir}/pon.vcf.gz
+
+tabix ${inputDir}/*_for_pon.vcf.gz
+
+bcftools merge -o ${outputDir}/merged_pon.vcf.gz -O b -0 \
+${inputDir}/*_for_pon.vcf.gz
+
+bcftools +fill-tags ${outputDir}/merged_pon.vcf.gz -- -t AF > ${outputDir}/merged_pon_w_af.vcf
+bcftools view -O z -o ${outputDir}/merged_pon_w_af.vcf.gz ${outputDir}/merged_pon_w_af.vcf
+tabix ${outputDir}/merged_pon_w_af.vcf.gz
+
+bcftools isec -p ${outputDir}/pon_isec ${outputDir}/merged_pon_w_af.vcf.gz ${outputDir}/pon_w_af.vcf.gz
+mv ${outputDir}/pon_isec/0002.vcf ${outputDir}/pon_final.vcf
+bcftools view ${outputDir}/pon_final.vcf -O z -o ${outputDir}/pon_final.vcf.gz
+tabix ${outputDir}/pon_final.vcf.gz
+rm -rfv ${outputDir}/pon_isec
+```
+:::
+
+# Somatic Variant Calling using GATK Mutect2 (Mouse Samples) {#mouse_somatic_variant_calling_mutect2}
+
+We can  use Mutect2 as well to define somatic variants in mouse WES data, but we must create PON from normal mouse samples as there is not a publically available PON for mouse.
+
+### Creating custom mouse PON
+
+Similar to creating custom PON from human samples, we will use normal samples to create a custom panel of normals. This script requires a manifest file `normals_manifest.txt` that contains two columns, the first one is sample name and the second one is the processed BAM path. Again, we use the bam files after running BSQR. The results are stored in `outputs/PON` directory.
+
+| column1 | column2 |
+|--------|---------------|
+| sample1 | path/to/sample1.bam |
+| sample2 | path/to/sample2.bam |
+| ...    | ...           |
+
+This process first runs Mutect2 on the normal samples to compare them to the reference genome, then merges the results to create the panel of normals with different normal variants. This needs to run using multiple samples, therefore we are using a SLURM script here, but you can also run it on a single machine if you have enough resources.
+
+### Running Mutect2 on normal samples
+
+```bash
+#!/bin/bash
+
+#SBATCH --account=
+#SBATCH --job-name='PanelOfNormal_Preprocess_%a'
+#SBATCH --output=logs/PanelOfNormal_Preprocess_%a.log
+
+#SBATCH --partition=standard
+#SBATCH --mem=128G
+#SBATCH --cpus-per-task=32
+#SBATCH --time=24:00:00
+
+#SBATCH --array=1-<number_of_samples>
+
+ml gatk
+ml picard-tools
+ml samtools
+
+ref=/data/references/mm39.fa
+outputDir=outputs/PON
+mkdir -p $outputDir
+samples_manifest=normals_manifest.txt
+sample=$(cat $samples_manifest | cut -f1 | sed -n ${SLURM_ARRAY_TASK_ID}p)
+bam_file_path=$(cat $samples_manifest | cut -f2 | sed -n ${SLURM_ARRAY_TASK_ID}p)
+
+gatk Mutect2 \
+    -R $ref \
+    -I $bam_file_path \
+    -max-mnp-distance 0 \
+    -O ${outputDir}/${sample}_for_pon.vcf.gz
+```
+
+### Creating a panel of normal from Mutect2 results
+
+After running Mutect2 on all normal samples, we can create the panel of normals using the following script
+
+```bash
+#!/bin/bash
+
+#SBATCH --account=
+#SBATCH --job-name='PanelOfNormal'
+#SBATCH --output=logs/PanelOfNormal.log
+
+#SBATCH --partition=standard
+#SBATCH --mem=180G
+#SBATCH --cpus-per-task=32
+#SBATCH --time=48:00:00
+
+ml gatk
+ml picard-tools
+
+ref=data/references/m39.fa
+inputDir=outputs/PON
+outputDir=outputs/PON
+bait=data/references/S0276129/S0276129_Regions_mm39.bed
+
+gatk --java-options "-Xmx64g -Xms64g" GenomicsDBImport -R $ref \
+--genomicsdb-workspace-path ${inputDir}/pon_db \
+--max-num-intervals-to-import-in-parallel 32 \
+--reader-threads 32 \
+--merge-input-intervals \
+-L $bait \
+-V ${inputDir}/*_for_pon.vcf.gz 
+
+gatk CreateSomaticPanelOfNormals -R $ref \
+    -V gendb://${inputDir}/pon_db \
+    -O ${outputDir}/pon.vcf.gz
+
+tabix ${inputDir}/*_for_pon.vcf.gz
+
+bcftools merge -o ${outputDir}/merged_pon.vcf.gz -O b -0 \
+${inputDir}/*_for_pon.vcf.gz
+
+bcftools +fill-tags ${outputDir}/merged_pon.vcf.gz -- -t AF > ${outputDir}/merged_pon_w_af.vcf
+bcftools view -O z -o ${outputDir}/merged_pon_w_af.vcf.gz ${outputDir}/merged_pon_w_af.vcf
+tabix ${outputDir}/merged_pon_w_af.vcf.gz
+
+bcftools isec -p ${outputDir}/pon_isec ${outputDir}/merged_pon_w_af.vcf.gz ${outputDir}/pon_w_af.vcf.gz
+mv ${outputDir}/pon_isec/0002.vcf ${outputDir}/pon_final.vcf
+bcftools view ${outputDir}/pon_final.vcf -O z -o ${outputDir}/pon_final.vcf.gz
+tabix ${outputDir}/pon_final.vcf.gz
+rm -rfv ${outputDir}/pon_isec
+```
+Here we will run Mutect2 on the samples. Instead of using GATK's `Funcotator` to annotate the variant calls, we will use `annovar` because GATK doesn't have resources for mouse genome. 
+
+`annovar` can be downloaded [here](https://annovar.openbioinformatics.org/en/latest/user-guide/download/). You will need to specify the path to `annovar` installation
+
+We will then download the mouse database (mm39) for `annovar` as follows
+
+### Downloading mouse database for annovar
+
+```bash
+annovarPath=/path/to/annovar
+mousedbPath=data/mousedb
+
+perl ${annovarPath}/annotate_variation.pl -buildver mm39 -downdb refGene $mousedbPath
+perl ${annovarPath}/annotate_variation.pl --buildver mm39 --downdb seq $mousedbPath/mm39_seq
+perl ${annovarPath}/retrieve_seq_from_fasta.pl $mousedbPath/mm39_refGene.txt -seqdir $mousedbPath/mm39_seq -format refGene -outfile $mousedbPath/mm39_refGeneMrna.fa
+```
+
+You can run the above commands for each sample separately, or you can use the following SLURM script to parallelize this workflow on multiple samples using SLURM on an HPC cluster.
+
+:::{.callout-note title="SLURM Script"}
+
+### Running Mutect2 on mouse tumor samples
+
+```{bash}
+#!/bin/bash
+
+#SBATCH --account=
+#SBATCH --job-name='Mutect2_%a'
+#SBATCH --output=logs/Mutect2_%a.log
+
+#SBATCH --partition=standard
+#SBATCH --mem=64G
+#SBATCH --cpus-per-task=32
+#SBATCH --time=24:00:00
+
+#SBATCH --array=1-<number_of_samples>
+
+ml gatk
+ml bcftools
+
+ref=data/references/mm39.fa
+bam_dir=outputs/GATK_preprocessing
+outputDir=outputs/Mutect2
+mkdir -p $outputDir
+samples_manifest=samples_manifest.txt
+gr_res=data/references/mgp_REL2021_snps.chr.sorted.vcf
+pon=outputs/Mutect2/pon_w_af.vcf.gz
+bait=data/references/S0276129/S0276129_Regions_mm39.bed
+annovarPath=/path/to/annovar
+mousedbPath=data/mousedb
+
+tumor_sample=$(cat $samples_manifest | cut -f1 | sed -n ${SLURM_ARRAY_TASK_ID}p)
+bam_file_path=$(cat $samples_manifest | cut -f1 | sed -n ${SLURM_ARRAY_TASK_ID}p)
+
+echo "::> GATK Mutect2 <::"
+gatk Mutect2 \
+-R $ref \
+-I $bam_file_path \
+--panel-of-normals $pon \
+--genotype-germline-sites \
+--genotype-pon-sites \
+--interval-padding 50 \
+-O ${outputDir}/${sample}_calls.vcf.gz
+
+#### --germline-resource $gr_res \
+# bcftools annotate -x INFO/CSQ,INFO/DP4,INFO/MQ,INFO/AD,INFO/DP -O z -o ../data/references/mgp_REL2021_snps.chr.sorted.filtered.vcf $gr_res
+# bcftools +fill-tags ../data/references/mgp_REL2021_snps.chr.sorted.filtered.vcf -- -t AN,AC,AF | less
+
+GATK Result Filteration
+echo "::> GATK Filteration <::"
+gatk GetPileupSummaries \
+-I $bam_file_path \
+-V $pon \
+-L $pon \
+-O ${outputDir}/${tumor_sample}_pileup.table
+
+gatk CalculateContamination \
+-I ${outputDir}/${tumor_sample}_pileup.table \
+-O ${outputDir}/${tumor_sample}_contamination.table
+
+gatk FilterMutectCalls \
+-R $ref \
+-V ${outputDir}/${tumor_sample}_calls.vcf.gz \
+-O ${outputDir}/${tumor_sample}_calls_tagged.vcf.gz \
+--contamination-table ${outputDir}/${tumor_sample}_contamination.table
+
+bcftools view -f PASS -O z \
+-o ${outputDir}/${tumor_sample}_filtered_final.vcf.gz \
+${outputDir}/${tumor_sample}_calls_tagged.vcf.gz
+
+tabix -f ${outputDir}/${tumor_sample}_filtered_final.vcf.gz
+
+perl ${annovarPath}/convert2annovar.pl -format vcf4 \
+${outputDir}/${tumor_sample}_filtered_final.vcf.gz > ${outputDir}/${tumor_sample}.avinput
+
+perl ${annovarPath}/table_annovar.pl ${outputDir}/${tumor_sample}.avinput \
+$mousedbPath \
+-buildver mm39 \
+-out myanno \
+-remove \
+-protocol refGene \
+-operation g \
+-nastring . \
+-polish \
+--outfile ${outputDir}/${tumor_sample}
+
+rm -vf ${outputDir}/${tumor_sample}_contamination.table
+rm -vf ${outputDir}/${tumor_sample}_pileup.table
+rm -vf ${outputDir}/${tumor_sample}_calls_tagged.vcf.gz.filteringStats.tsv
+rm -vf ${outputDir}/${tumor_sample}.avinput
+```
+:::
+
+# Parsing Somatic SNV Calls {#parsing_variant_calling_output}
+
+## Using `maftools` to visualize the results
+
+### Merge maf files
+
+```{r}
+library(maftools)
+library(tidyverse)
+
+mafs <- list.files("outputs/Mutect2_Somatic_Variant_Calling/")
+mafs <- lapply(mafs, FUN =function(x){
+  message("reading ", x)
+  read.maf(
+    list.files(file.path("outputs/Variant_Calling/", x),
+              pattern = '.maf', full.names = T))
+})
+mafs <- merge_mafs(mafs = mafs, verbose = T)
+saveRDS(mafs, "outputs/Mutect2_Somatic_Variant_Calling/combined_maf_object.rds")
+write.csv(data.frame(combined_maf_object@data), "outputs/Mutect2_Somatic_Variant_Calling/SNV_outputs.csv")
+```
+
+::: {.callout-tip collapse="true" title="Converting Annovar output to MAF format"}
+
+In case we used "annovar" for annotation of variant calls, we can convert annovar output to `maf` as follows
+
+```{r}
+mutect2_output <- list.files("outputs/Mutect2/", pattern = 'mm39_multianno.txt', full.names = T)
+mutect2_maf <- annovarToMaf(mutect2_output,
+                            refBuild = "mm39",
+                            table = 'refGene',
+                            MAFobj = T)
+```
+:::
+
+### Variant classificaion summary
+
+```{r}
+datatable(mafSummary(mafs)$variant.classification.summary,
+          filter = 'top',
+          caption = "Variant classificaion summary",
+          options = list(scrollX = T))
+```
+
+### Gene summary
+
+```{r}
+datatable(mafSummary(mafs)$gene.summary,  filter = 'top', caption = "Gene summary", options = list(scrollX = T))
+```
+
+### Variants per sample
+
+```{r}
+datatable(mafSummary(mafs)$variants.per.sample,  filter = 'top', caption = "Variants per samples", options = list(scrollX = T))
+```
+
+### Variant type summary
+
+```{r}
+datatable(mafSummary(mafs)$variant.type.summary,  filter = 'top', caption = "Variant type summary", options = list(scrollX = T))
+```
+
+### Summary Plots
+
+```{r}
+plotmafSummary(maf = mafs, rmOutlier = TRUE, addStat = 'median', dashboard = TRUE, titvRaw = F, showBarcodes = T)
+```
+
+### Oncoplots
+
+The following plot shows the mutations of the top 20 mutated genes
+
+```{r}
+oncoplot(maf = mafs, top = 20, showTumorSampleBarcodes = T, fontSize = 0.4)
+```
+
+The following plot shows the mutations of specific genes of interest
+
+```{r}
+oncoplot(maf = mafs, genes = genes <- c("KRAS", "TP53", "CDKN2A"), showTumorSampleBarcodes = T, fontSize = 0.4)
+
+```
+
+### KRAS Mutations
+
+```{r}
+lollipopPlot(
+  maf = mafs,
+  gene = 'KRAS',
+  AACol = 'Protein_Change',
+  showMutationRate = TRUE,
+  labelPos = c('12','61'),
+  refSeqID = 'NM_033360'
+)
+```
+
+```{r}
+KRAS_mutations <- mafs@data %>% filter(Hugo_Symbol == 'KRAS') %>% select(Tumor_Sample_Barcode, Hugo_Symbol, Variant_Classification, Variant_Type, Reference_Allele, Tumor_Seq_Allele1, Tumor_Seq_Allele2, Genome_Change, cDNA_Change, Codon_Change, Protein_Change)
+datatable(KRAS_mutations,
+          filter = 'top',
+          caption = "Variant classificaion summary",
+          options = list(scrollX = T))
+```
+
+## Analysis of Annotated Variants
+
+### Gene Summary from ANNOVAR Output
+
+```{r}
+library(tidyverse)
+
+# Read ANNOVAR output
+annot <- read_tsv("annotated.hg38_multianno.txt")
+
+# Filter for high-impact variants
+high_impact <- annot |>
+  filter(
+    ExonicFunc.refGene %in% c("frameshift deletion", "frameshift insertion",
+                               "stopgain", "stoploss", "nonsynonymous SNV"),
+    gnomAD_genome_ALL < 0.01 | is.na(gnomAD_genome_ALL)
+  )
+
+# Summarize by gene
+gene_summary <- high_impact |>
+  count(Gene.refGene, ExonicFunc.refGene) |>
+  pivot_wider(names_from = ExonicFunc.refGene, values_from = n, values_fill = 0)
+```
+
+### Oncogenic Annotation with OncoKB
+
+```{r}
+# Prepare input for OncoKB Annotator
+# https://github.com/oncokb/oncokb-annotator
+
+variants_for_oncokb <- high_impact |>
+transmute(
+    Hugo_Symbol = Gene.refGene,
+    Alteration = AAChange.refGene,  # Need to parse
+    Tumor_Sample_Barcode = "sample1"
+  )
+
+write_tsv(variants_for_oncokb, "variants_for_oncokb.txt")
+
+# Run OncoKB annotator (Python)
+# python oncokb-annotator/MafAnnotator.py -i variants.maf -o annotated.maf -t <TOKEN>
+```
+
+### Variant Classification
+
+```{r}
+# Apply ACMG-like classification
+classify_variant <- function(annot_row) {
+  # Initialize evidence
+  pathogenic_evidence <- 0
+  benign_evidence <- 0
+  
+  # Population frequency
+  af <- as.numeric(annot_row$gnomAD_genome_ALL)
+  if (!is.na(af)) {
+    if (af > 0.05) benign_evidence <- benign_evidence + 2  # BA1
+    if (af > 0.01) benign_evidence <- benign_evidence + 1  # BS1
+    if (af < 0.0001) pathogenic_evidence <- pathogenic_evidence + 1  # PM2
+  }
+  
+  # Functional effect
+  func <- annot_row$ExonicFunc.refGene
+  if (func %in% c("stopgain", "frameshift deletion", "frameshift insertion")) {
+    pathogenic_evidence <- pathogenic_evidence + 2  # PVS1
+  }
+  
+  # In silico predictions
+  if (annot_row$SIFT_pred == "D" && annot_row$Polyphen2_HDIV_pred == "D") {
+    pathogenic_evidence <- pathogenic_evidence + 1  # PP3
+  }
+  
+  # ClinVar
+  clnsig <- annot_row$CLNSIG
+  if (grepl("Pathogenic", clnsig)) pathogenic_evidence <- pathogenic_evidence + 2
+  if (grepl("Benign", clnsig)) benign_evidence <- benign_evidence + 2
+  
+  # Classify
+  if (pathogenic_evidence >= 4) return("Pathogenic")
+  if (pathogenic_evidence >= 2) return("Likely Pathogenic")
+  if (benign_evidence >= 3) return("Benign")
+  if (benign_evidence >= 1) return("Likely Benign")
+  return("VUS")
+}
+
+# Apply classification
+annot$classification <- map_chr(1:nrow(annot), ~classify_variant(annot[.x, ]))
+```
+
+### Generate Report
+
+```{r}
+library(gt)
+
+# Create summary table
+report_table <- high_impact |>
+  filter(classification %in% c("Pathogenic", "Likely Pathogenic")) |>
+  select(
+    Gene = Gene.refGene,
+    Variant = AAChange.refGene,
+    `Variant Type` = ExonicFunc.refGene,
+    `gnomAD AF` = gnomAD_genome_ALL,
+    ClinVar = CLNSIG,
+    Classification = classification
+  ) |>
+  gt() |>
+  tab_header(
+    title = "Pathogenic Variants",
+    subtitle = "High-confidence pathogenic and likely pathogenic variants"
+  ) |>
+  fmt_scientific(columns = `gnomAD AF`, decimals = 2)
+
+# Save report
+gtsave(report_table, "pathogenic_variants.html")
+```
+
+# Germline Variant Calling {#germline_variant_calling}
+
+We can use Haplotype Caller from GATK to define germline variants in WES data. Here we will run Haplotype Caller per sample to generate gVCF files, then we will do joint genotyping of all samples to generate a multi-sample VCF file.
+
+:::{.callout-tip collapse="true" title="SLURM Script"}
+
+## Running Haplotype Caller per sample to generate gVCF files
+
+```{bash}
+#!/bin/bash
+
+#SBATCH --account=
+#SBATCH --job-name='HaploTypeCaller_%a'
+#SBATCH --output=logs/HaploTypeCaller_%a.log
+
+#SBATCH --partition=standard
+#SBATCH --mem=64G
+#SBATCH --cpus-per-task=32
+#SBATCH --time=24:00:00
+
+#SBATCH --array=1-<number_of_samples>
+
+ml gatk
+ml samtools
+
+ref=data/references/mm39.fa
+bam_dir=outputs/GATK_preprocessing
+gr_res=data/references/mgp_REL2021_snps.chr.sorted.vcf
+outputDir=outputs/HaplotypeCaller
+mkdir -p $outputDir
+samples_manifest=samples_manifest.txt
+
+sample=$(cat $samples_manifest | cut -f1 | uniq | sed -n ${SLURM_ARRAY_TASK_ID}p)
+sample_bam_path=$(cat $samples_manifest | cut -f2 | uniq | sed -n ${SLURM_ARRAY_TASK_ID}p)
+
+echo "Analyzing ${sample}"
+
+echo "::> GATK HaplotypeCaller <::"
+gatk --java-options "-Xmx64g" HaplotypeCaller  \
+   -R $ref \
+   -I ${sample_bam_path} \
+   -O ${outputDir}/${sample}.g.vcf.gz \
+   -ERC GVCF
+
+echo "::> GATK CNNScoreVariants <::"
+gatk=/home/hossiny/gatk-4.4.0.0/gatk
+$gatk CNNScoreVariants \
+-V ${outputDir}/${sample}.g.vcf.gz \
+-R $ref \
+-O ${outputDir}/${sample}_annotated.g.vcf.gz 
+
+echo "::> GATK FilterVariantTranches <::"
+gatk FilterVariantTranches \
+-V  ${outputDir}/${sample}_annotated.g.vcf.gz  \
+--resource $gr_res \
+--info-key CNN_1D \
+--snp-tranche 99.95 \
+--indel-tranche 99.4 \
+-O  ${outputDir}/${sample}_filtered.g.vcf.gz 
+```
+
+## Joint Genotyping of all samples
+
+```{bash}
+#!/bin/bash
+
+#SBATCH --account=
+#SBATCH --job-name='HaploTypeCaller_%a'
+#SBATCH --output=logs/HaploTypeCaller_%a.log
+
+#SBATCH --partition=standard
+#SBATCH --mem=64G
+#SBATCH --cpus-per-task=32
+#SBATCH --time=24:00:00
+
+ml gatk
+ml samtools
+
+ref=data/references/mm39.fa
+inputDir=outputs/HaplotypeCaller
+bait=data/references/S0276129/S0276129_Regions_mm39.bed
+gr_res=data/references/mgp_REL2021_snps.chr.sorted.vcf
+
+gatk --java-options "-Xmx64g -Xms64g" GenomicsDBImport -R $ref \
+--genomicsdb-workspace-path ${inputDir}/germline_resource \
+--max-num-intervals-to-import-in-parallel 32 \
+--reader-threads 32 \
+--merge-input-intervals \
+-L $bait \
+-V ${inputDir}/*.g.vcf.gz
+
+gatk --java-options "-Xmx64g" GenotypeGVCFs \
+   -R $ref \
+   -V gendb://${inputDir}/germline_resource \
+   -O ${inputDir}/germline_resource.vcf.gz 
+
+gatk VariantRecalibrator \
+-R $ref \
+-V ${inputDir}/germline_resource.vcf.gz \
+--resource $gr_res \
+-O ${inputDir}/output.recal \
+--tranches-file ${inputDir}/output.tranches
+
+gatk ApplyVQSR \
+-R $ref \
+-V ${inputDir}/germline_resource.vcf.gz \
+-O ${inputDir}/germline_resource_filtered.vcf.gz \
+--ts_filter_level 99.0 \
+--tranches-file ${inputDir}/output.tranches \
+--recal-file ${inputDir}/output.recal
+```
+:::
+
+# Strelka2 (Alternative) Pipeline {#strelka_variant_calling}
+
+Strelka is another tool that can be used to generate germline and somatic variant calls from WES data. Below are the SLURM scripts to run Strelka for germline and somatic variant calling.
+
+:::{.callout-tip collapse="true" title="Using Strelka2 for Germline and Somatic Variant Calling"}
+
+## Single Sample Germline Variant Calling
+
+```{bash}
+#!/bin/bash
+
+#SBATCH --account=
+#SBATCH --job-name='Strelka_Germlina_SS_%a'
+#SBATCH --output=logs/Strelka_Germlina_SS_%a.log
+
+#SBATCH --partition=standard
+#SBATCH --mem=64G
+#SBATCH --cpus-per-task=32
+#SBATCH --time=24:00:00
+
+#SBATCH --array=1-<number_of_samples>
+
+ref=data/references/mm39.fa
+bam_dir=outputs/GATK_preprocessing
+bait=data/references/S0276129/S0276129_Regions_mm39.bed.gz
+outputDir=outputs/Strelka_Germline_SS
+mkdir -p $outputDir
+samples_manifest=outputs/GATK_preprocess_manifest.txt
+
+sample=$(cat $samples_manifest | cut -f1 | uniq | sed -n ${SLURM_ARRAY_TASK_ID}p)
+STRELKA_INSTALL_PATH=/home/hossiny/umms-angelesc/Liposarcoma_mouse_model_project/strelka-2.9.2.centos6_x86_64
+
+echo "Analyzing ${sample}"
+
+${STRELKA_INSTALL_PATH}/bin/configureStrelkaGermlineWorkflow.py \
+--bam ${bam_dir}/${sample}_wout_RG.bam \
+--referenceFasta $ref \
+--callRegions ${bait} \
+--exome \
+--runDir ${outputDir}/${sample}
+
+${outputDir}/${sample}/runWorkflow.py -m local -j 36 -g 64
+```
+
+
+## Joint Germline Variant Calling
+
+```{bash}
+#!/bin/bash
+
+#SBATCH --account=
+#SBATCH --job-name='Strelka_Germline_%a'
+#SBATCH --output=logs/Strelka_Germline_%a.log
+
+#SBATCH --partition=standard
+#SBATCH --mem=64G
+#SBATCH --cpus-per-task=32
+#SBATCH --time=24:00:00
+
+ml samtools
+ml bedtools2
+
+ref=data/references/mm39.fa
+bait=data/references/S0276129/S0276129_Regions_mm39.bed
+bam_dir=outputs/GATK_preprocessing
+outputDir=outputs/Strelka
+mkdir -p $outputDir
+
+bedtools sort -i ${bait} > ${bait}.sorted
+bgzip -c ${bait}.sorted > ${bait}.gz
+tabix -p bed ${bait}.gz
+rm ${bait}.sorted
+
+STRELKA_INSTALL_PATH=/path/to/strelka
+
+${STRELKA_INSTALL_PATH}/bin/configureStrelkaGermlineWorkflow.py \
+--bam ${bam_dir}/sample1.bam \
+--bam ${bam_dir}/sample2.bam \
+... \
+--referenceFasta $ref \
+--callRegions $bait.gz \
+--exome \
+--runDir ${outputDir}/${STRELKA_ANALYSIS_PATH}
+
+${outputDir}/${STRELKA_ANALYSIS_PATH}/runWorkflow.py -m local -j 36 -g 64
+```
+:::
+
+# Variant Filtering and Statistics {#variant_filtering_statistics}
+
+## Hard Filtering (for small datasets)
+
+```{bash}
+#| eval: false
+
+# SNP filters
+gatk VariantFiltration \
+    -R reference.fa \
+    -V cohort.vcf.gz \
+    -O cohort.filtered.vcf.gz \
+    --filter-name "QD_filter" --filter-expression "QD < 2.0" \
+    --filter-name "FS_filter" --filter-expression "FS > 60.0" \
+    --filter-name "MQ_filter" --filter-expression "MQ < 40.0" \
+    --filter-name "SOR_filter" --filter-expression "SOR > 3.0" \
+    --filter-name "MQRankSum_filter" --filter-expression "MQRankSum < -12.5" \
+    --filter-name "ReadPosRankSum_filter" --filter-expression "ReadPosRankSum < -8.0"
+```
+
+## Variant Statistics
+
+```{bash}
+#| eval: false
+
+# Basic stats with bcftools
+bcftools stats cohort.filtered.vcf.gz > cohort.stats.txt
+
+# Ti/Tv ratio
+bcftools stats cohort.filtered.vcf.gz | grep "TSTV"
+
+# Variants per sample
+bcftools query -f '%CHROM\t%POS\t%REF\t%ALT[\t%SAMPLE=%GT]\n' cohort.filtered.vcf.gz
+```
+
+## Getting intersection between two SNV calls
+
+We might want to get the intersection of two variant callers to get the confident calls. For that we will use bcftools to get intersection between two `vcf` files
+
+```{bash}
+#!/bin/bash
+
+#SBATCH --account=
+#SBATCH --job-name='Merge_SNVs_%a'
+#SBATCH --output=logs/Merge_SNVs_%a.log
+
+#SBATCH --partition=standard
+#SBATCH --mem=64G
+#SBATCH --cpus-per-task=32
+#SBATCH --time=24:00:00
+
+#SBATCH --array=1-18
+
+ml bcftools 
+
+samples_manifest=outputs/GATK_preprocess_manifest.txt
+tumor_sample=$(cat $samples_manifest | cut -f1,5 | awk '$2 ~ "DLPS" {print $1}' | uniq | sed -n ${SLURM_ARRAY_TASK_ID}p)
+Mutect2Output=outputs/Mutect2/${tumor_sample}.vcf.gz
+tabix ${Mutect2Output}
+StrelkaOutput=outputs/Strelka_Somatic/${tumor_sample}.vcf.gz
+tabix ${StrelkaOutput}
+outputDir=outputs/Strelka_Mutect2_intersection
+mkdir -p $outputDir
+
+annovarPath=/home/hossiny/umms-angelesc/Liposarcoma_mouse_model_project/annovar
+mousedbPath=../data/mousedb
+
+bcftools isec -p ${outputDir}/${tumor_sample} -O z \
+$Mutect2Output $StrelkaOutput 
+
+perl ${annovarPath}/convert2annovar.pl -format vcf4 \
+${outputDir}/${tumor_sample}/0002.vcf.gz > ${outputDir}/${tumor_sample}.avinput
+
+perl ${annovarPath}/table_annovar.pl ${outputDir}/${tumor_sample}.avinput \
+$mousedbPath \
+-buildver mm39 \
+-out myanno \
+-remove \
+-protocol refGene \
+-operation g \
+-nastring . \
+-polish \
+--outfile ${outputDir}/${tumor_sample}
+```
+
+# Next Steps
+
+With variant calls, proceed to [CNV Calling](03-CNV-Calling.qmd) for copy number analysis

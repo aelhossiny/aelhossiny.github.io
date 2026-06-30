@@ -1,0 +1,755 @@
+/*-- scss:defaults --*/
+
+// ─── Academic Pages palette ──────────────────────────────────────────────────
+$primary:   #2f7f93;
+$secondary: #52adc8;
+$success:   #62c462;
+$info:      #2f7f93;
+$warning:   #f89406;
+$danger:    #ee5f5b;
+$light:     #f2f3f3;
+$dark:      #4a4a4a;
+
+// Typography
+$font-family-sans-serif: -apple-system, "SF Pro Text", Roboto, "Segoe UI", "Helvetica Neue", "Lucida Grande", Arial, sans-serif;
+$font-family-monospace:  Monaco, Consolas, "Lucida Console", monospace;
+$headings-font-family:   $font-family-sans-serif;
+$headings-font-weight:   600;
+$line-height-base:       1.5;
+
+// Base colors
+$body-color:       #4a4a4a;
+$body-bg:          #ffffff;
+$link-color:       #52adc8;
+$link-hover-color: #2f7f93;
+
+// Borders
+$border-color:    #e8e8e8;
+$border-radius:   4px;
+$border-radius-lg: 6px;
+$border-radius-sm: 2px;
+
+/*-- scss:rules --*/
+
+// ─── Global typography ───────────────────────────────────────────────────────
+h1 { font-size: 2.2em;   line-height: 1.2; margin-top: 0;    margin-bottom: 0.5em; border: none; }
+h2 { font-size: 1.5em;   line-height: 1.2; margin-top: 2em;  margin-bottom: 0.5em; }
+h3 { font-size: 1.2em;   line-height: 1.2; margin-top: 1.5em; margin-bottom: 0.5em; }
+h4, h5, h6 { font-size: 1em; line-height: 1.2; margin-top: 1em; margin-bottom: 0.5em; }
+
+a {
+  color: $link-color;
+  transition: color 0.15s ease-in-out;
+  &:hover { color: $link-hover-color; }
+}
+
+// ─── Navbar ──────────────────────────────────────────────────────────────────
+// Quarto renders data-bs-theme="dark" regardless of YAML setting,
+// so we force the white navbar entirely via CSS.
+.navbar {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid $border-color;
+  box-shadow: none;
+
+  .navbar-brand {
+    color: $body-color !important;
+    font-weight: 700;
+    font-size: 1.05rem;
+    &:hover { color: $primary !important; }
+  }
+
+  .nav-link {
+    color: $body-color !important;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: color 0.15s ease;
+    &:hover  { color: $primary !important; }
+    &.active { color: $primary !important; }
+  }
+
+  .dropdown-item {
+    font-size: 0.9rem;
+    color: $body-color;
+    &:hover, &:focus { color: $primary; background: rgba($primary, 0.06); }
+  }
+}
+
+// Reset Bootstrap dark-theme CSS variables that Quarto injects
+.navbar[data-bs-theme="dark"] {
+  --bs-navbar-color:        #{$body-color};
+  --bs-navbar-hover-color:  #{$primary};
+  --bs-navbar-active-color: #{$primary};
+  --bs-navbar-brand-color:  #{$body-color};
+  --bs-navbar-toggler-border-color: #{$border-color};
+  background-color: #ffffff !important;
+}
+
+// ─── Homepage two-column layout ──────────────────────────────────────────────
+.ap-layout {
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  gap: 3rem;
+  align-items: start;
+  max-width: 1060px;
+  margin: 2rem auto 0;
+  padding: 0 1.25rem 3rem;
+}
+
+@media (max-width: 924px) {
+  .ap-layout { grid-template-columns: 1fr; }
+}
+
+// ─── Profile sidebar ─────────────────────────────────────────────────────────
+.ap-sidebar {
+  position: sticky;
+  top: 80px;
+}
+
+.ap-profile-card {
+  text-align: center;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid $border-color;
+  margin-bottom: 1.25rem;
+
+  // No border/padding on headings inside the card
+  h1, h2, h3 {
+    border: none;
+    padding: 0;
+    margin: 0 0 0.2em;
+  }
+}
+
+.ap-avatar-wrap {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  border: 3px solid $border-color;
+  margin: 0 auto 1.1rem;
+  overflow: hidden;
+  background: linear-gradient(135deg, $primary, $secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    display: block;
+  }
+
+  &.ap-initials {
+    color: white;
+    font-size: 2.8rem;
+    font-weight: 700;
+    letter-spacing: -1px;
+  }
+}
+
+.ap-profile-name {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: $body-color;
+  margin-bottom: 0.25rem;
+}
+
+.ap-profile-role {
+  font-size: 0.85rem;
+  color: #777;
+  margin-bottom: 0.15rem;
+  line-height: 1.4;
+}
+
+.ap-profile-location {
+  font-size: 0.8rem;
+  color: #999;
+  margin-top: 0.4rem;
+}
+
+// ─── Sidebar social links ────────────────────────────────────────────────────
+.ap-social-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
+  li {
+    margin-bottom: 0.45rem;
+    font-size: 0.85rem;
+
+    a {
+      color: $body-color;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      transition: color 0.15s;
+
+      &:hover { color: $primary; }
+    }
+
+    i {
+      width: 1.1rem;
+      text-align: center;
+      color: $primary;
+      font-size: 0.95rem;
+    }
+  }
+}
+
+// ─── Main content area ───────────────────────────────────────────────────────
+.ap-content {
+  min-width: 0;
+
+  h2 {
+    font-size: 1.35rem;
+    color: $body-color;
+    padding-bottom: 0.3em;
+    border-bottom: 1px solid $border-color;
+
+    &:first-child { margin-top: 0; }
+  }
+
+  h3 { font-size: 1.1rem; }
+
+  p { margin-bottom: 1em; line-height: 1.65; }
+}
+
+// ─── Publication list ────────────────────────────────────────────────────────
+.pub-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+}
+
+.pub-item {
+  padding: 0.9rem 0;
+  border-bottom: 1px solid $border-color;
+  line-height: 1.55;
+  font-size: 0.92rem;
+
+  &:last-child { border-bottom: none; }
+}
+
+.pub-title {
+  font-weight: 600;
+  color: $body-color;
+  display: block;
+  margin-bottom: 0.2rem;
+  font-size: 0.94rem;
+}
+
+.pub-authors {
+  color: #666;
+  display: block;
+  margin-bottom: 0.15rem;
+
+  strong { color: $body-color; }
+}
+
+.pub-venue {
+  color: $primary;
+  font-style: italic;
+  font-size: 0.88rem;
+}
+
+.pub-badge {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  background: rgba($primary, 0.12);
+  color: $primary;
+  border-radius: 3px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  margin-left: 0.4rem;
+  vertical-align: middle;
+  font-style: normal;
+  letter-spacing: 0.01em;
+}
+
+// ─── Education ───────────────────────────────────────────────────────────────
+.edu-timeline { margin: 0.5rem 0; }
+
+.edu-item {
+  display: flex;
+  gap: 1.25rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid $border-color;
+  font-size: 0.92rem;
+  line-height: 1.5;
+
+  &:last-child { border-bottom: none; }
+}
+
+.edu-year {
+  min-width: 100px;
+  color: $secondary;
+  font-weight: 600;
+  font-size: 0.82rem;
+  padding-top: 0.15rem;
+  flex-shrink: 0;
+}
+
+.edu-content {
+  flex: 1;
+  strong { display: block; }
+}
+
+// ─── Research interest tags ──────────────────────────────────────────────────
+.interest-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0.75rem 0;
+}
+
+.interest-tag {
+  background: rgba($primary, 0.07);
+  color: $primary;
+  padding: 0.25rem 0.7rem;
+  border-radius: 100px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  border: 1px solid rgba($primary, 0.2);
+}
+
+// ─── Skills tags ─────────────────────────────────────────────────────────────
+.skill-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.5rem 0;
+}
+
+.skill-tag {
+  background: $light;
+  color: $body-color;
+  padding: 0.2rem 0.6rem;
+  border-radius: 3px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid $border-color;
+}
+
+// ─── Tables ──────────────────────────────────────────────────────────────────
+table {
+  width: 100%;
+  font-size: 0.92rem;
+  border-collapse: collapse;
+
+  td, th {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid $border-color;
+    text-align: left;
+  }
+
+  thead th {
+    border-bottom: 2px solid $border-color;
+    font-weight: 600;
+  }
+}
+
+// ─── Articles listing page ───────────────────────────────────────────────────
+// Override grid cards with a clean list look
+.quarto-listing {
+  .listing-item {
+    border-bottom: 1px solid $border-color;
+    padding: 0.9rem 0;
+    margin: 0;
+
+    &:last-child { border-bottom: none; }
+  }
+
+  .listing-title a {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: $body-color;
+    &:hover { color: $primary; }
+  }
+
+  .listing-date { color: #999; font-size: 0.82rem; }
+
+  .listing-description {
+    color: #666;
+    font-size: 0.9rem;
+    margin-top: 0.2rem;
+  }
+
+  .listing-category {
+    background: rgba($primary, 0.07);
+    color: $primary;
+    border: 1px solid rgba($primary, 0.2);
+    border-radius: 100px;
+    padding: 0.15rem 0.55rem;
+    font-size: 0.78rem;
+    font-weight: 500;
+  }
+}
+
+// ─── Code blocks ─────────────────────────────────────────────────────────────
+div.sourceCode {
+  border: 1px solid $border-color;
+  border-left: 3px solid $secondary;
+  border-radius: $border-radius;
+}
+
+pre.sourceCode {
+  background: #fafafa;
+  padding: 1rem;
+  font-size: 0.875rem;
+}
+
+code:not(pre > code) {
+  background: #f8f8f8;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-sm;
+  padding: 0.1em 0.35em;
+  font-size: 0.875em;
+}
+
+// ─── Callouts ────────────────────────────────────────────────────────────────
+.callout {
+  border-radius: $border-radius;
+  border-left-width: 3px;
+  margin: 1.5rem 0;
+
+  &.callout-note      { border-left-color: $info; }
+  &.callout-tip       { border-left-color: $success; }
+  &.callout-warning   { border-left-color: $warning; }
+  &.callout-important { border-left-color: $danger; }
+}
+
+// ─── TOC sidebar (article pages) ─────────────────────────────────────────────
+.sidebar nav[role="doc-toc"] {
+  font-size: 0.84rem;
+
+  ul {
+    border-left: 2px solid $border-color;
+    padding-left: 0.7rem;
+  }
+
+  a { color: #777; &:hover, &.active { color: $primary; } }
+}
+
+// ─── Pipeline nav sidebar ────────────────────────────────────────────────────
+.sidebar-navigation .sidebar-item {
+  border-radius: $border-radius-sm;
+
+  &.active {
+    background: rgba($primary, 0.07);
+    border-left: 2px solid $primary;
+  }
+}
+
+// ─── Pipeline cards ──────────────────────────────────────────────────────────
+.pipeline-card {
+  border: 1px solid $border-color;
+  border-left: 3px solid $primary;
+  border-radius: $border-radius;
+  padding: 1.4rem;
+  margin-bottom: 1.1rem;
+  transition: box-shadow 0.2s ease;
+  font-size: 0.93rem;
+
+  &:hover { box-shadow: 0 3px 10px rgba(0,0,0,0.08); }
+
+  h3 { color: $primary; margin-top: 0; }
+
+  .badge {
+    font-size: 0.74rem;
+    padding: 0.3em 0.6em;
+    margin-right: 0.4rem;
+    border-radius: 3px;
+  }
+}
+
+.badge-r       { background: #276DC3; color: white; }
+.badge-python  { background: #3776AB; color: white; }
+.badge-bash    { background: #4EAA25; color: white; }
+.badge-nextflow{ background: #0DC09D; color: white; }
+
+// ─── Tag cloud (pipeline pages) ──────────────────────────────────────────────
+.tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0.75rem 0;
+}
+
+.tag {
+  display: inline-block;
+  padding: 0.25rem 0.7rem;
+  background: $light;
+  border-radius: 100px;
+  font-size: 0.83rem;
+  color: $body-color;
+  border: 1px solid $border-color;
+  transition: all 0.15s ease;
+
+  &:hover { background: $primary; color: white; border-color: $primary; }
+}
+
+// ─── Workflow diagram ─────────────────────────────────────────────────────────
+.workflow-diagram {
+  background: $light;
+  border-radius: $border-radius;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  border: 1px solid $border-color;
+}
+
+// ─── Workflow timeline ────────────────────────────────────────────────────────
+.workflow-timeline {
+  position: relative;
+  padding-left: 2rem;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 1rem;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, $primary, $secondary);
+  }
+
+  .timeline-item {
+    position: relative;
+    padding: 1.25rem 0 1.25rem 2rem;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: -0.5rem;
+      top: 1.8rem;
+      width: 1rem;
+      height: 1rem;
+      background: $primary;
+      border-radius: 50%;
+      border: 3px solid white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    }
+  }
+}
+
+// ─── Step indicator ───────────────────────────────────────────────────────────
+.step-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  background: $primary;
+  color: white;
+  border-radius: 50%;
+  font-weight: 600;
+  margin-right: 0.75rem;
+  font-size: 0.9rem;
+}
+
+// ─── Footer ──────────────────────────────────────────────────────────────────
+.nav-footer {
+  background: $light;
+  border-top: 1px solid $border-color;
+  font-size: 0.82rem;
+  color: #888;
+}
+
+// ─── Pipeline landing grid ────────────────────────────────────────────────────
+.pipeline-landing-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.pipeline-landing-card {
+  border: 1px solid $border-color;
+  border-top: 3px solid $primary;
+  border-radius: $border-radius-lg;
+  padding: 1.5rem 1.5rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 4px 14px rgba(0,0,0,0.09);
+    transform: translateY(-2px);
+  }
+
+  .plc-icon {
+    font-size: 1.8rem;
+    color: $primary;
+    margin-bottom: 0.6rem;
+  }
+
+  h3 {
+    margin-top: 0.1rem;
+    margin-bottom: 0.5rem;
+    font-size: 1.05rem;
+    color: $body-color;
+  }
+
+  p {
+    color: #666;
+    font-size: 0.88rem;
+    line-height: 1.55;
+    flex: 1;
+    margin-bottom: 0.75rem;
+  }
+
+  .plc-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-bottom: 1rem;
+  }
+}
+
+.plc-link {
+  display: inline-block;
+  color: $primary !important;
+  font-weight: 600;
+  font-size: 0.88rem;
+  text-decoration: none !important;
+  margin-top: auto;
+
+  &:hover { color: $link-hover-color !important; }
+}
+
+// ─── Articles horizontal card listing ────────────────────────────────────────
+.quarto-listing-container-grid {
+  .list.grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+
+  .g-col-1 {
+    width: 100% !important;
+  }
+
+  .quarto-grid-item.card {
+    display: grid !important;
+    grid-template-columns: 220px 1fr !important;
+    height: auto !important;
+    min-height: 180px;
+    border: 1px solid $border-color !important;
+    border-radius: $border-radius-lg !important;
+    box-shadow: none !important;
+    overflow: hidden;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+
+    &:hover {
+      box-shadow: 0 4px 14px rgba(0,0,0,0.09) !important;
+      transform: translateY(-2px);
+    }
+
+    .card-img-top {
+      margin: 0 !important;
+      padding: 0 !important;
+      border-bottom: none !important;
+      border-right: 1px solid $border-color;
+      overflow: hidden;
+
+      img {
+        width: 100% !important;
+        height: 100% !important;
+        min-height: 180px;
+        object-fit: cover !important;
+        display: block;
+      }
+    }
+
+    .card-body.post-contents {
+      display: flex !important;
+      flex-direction: column !important;
+      padding: 1.25rem !important;
+
+      .listing-title {
+        font-size: 1.05rem;
+        font-weight: 600;
+        line-height: 1.4;
+        margin-bottom: 0.35rem;
+        order: 1;
+
+        a {
+          color: $body-color;
+          text-decoration: none;
+          &:hover { color: $primary; }
+        }
+      }
+
+      .listing-reading-time {
+        font-size: 0.8rem;
+        color: #999;
+        order: 2;
+        margin-bottom: 0.5rem;
+      }
+
+      .listing-description {
+        color: #666;
+        font-size: 0.88rem;
+        line-height: 1.55;
+        order: 3;
+        flex: 1;
+        margin-bottom: 0.5rem;
+        display: block !important;
+        -webkit-line-clamp: unset !important;
+        overflow: visible !important;
+      }
+
+      .card-attribution {
+        order: 4;
+        margin-bottom: 0.65rem;
+
+        .listing-date {
+          color: #999;
+          font-size: 0.78rem;
+        }
+      }
+
+      .listing-categories {
+        order: 5;
+        display: flex !important;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        padding-top: 0.65rem;
+        border-top: 1px solid $border-color;
+      }
+
+      .listing-category {
+        background: rgba($primary, 0.07) !important;
+        color: $primary !important;
+        border: 1px solid rgba($primary, 0.2) !important;
+        border-radius: 100px !important;
+        padding: 0.12rem 0.5rem !important;
+        font-size: 0.74rem !important;
+        font-weight: 500;
+        text-decoration: none !important;
+        cursor: pointer;
+      }
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  .quarto-listing-container-grid .quarto-grid-item.card {
+    grid-template-columns: 1fr !important;
+
+    .card-img-top { display: none !important; }
+  }
+}
+
+// ─── Responsive ──────────────────────────────────────────────────────────────
+@media (max-width: 924px) {
+  .ap-sidebar {
+    position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .ap-avatar-wrap { width: 110px; height: 110px; font-size: 2rem; }
+  .pipeline-landing-grid { grid-template-columns: 1fr; }
+}

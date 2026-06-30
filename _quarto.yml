@@ -4,19 +4,107 @@ project:
 
 website:
   title: "Ahmed Elhossiny"
+  description: "Postdoctoral Fellow in Computational Oncology at Memorial Sloan Kettering Cancer Center"
+  site-url: https://aelhossiny.github.io
+
   navbar:
+    background: white
+    foreground: dark
+    logo: images/dna-logo.svg
+    title: false
     left:
       - href: index.qmd
-        text: Home
-      - href: papers.qmd
-        text: Papers with Code
-      - href: workflows.qmd
-        text: Workflows/Tutorials
+        text: About Me
+      - href: pipelines/index.qmd
+        text: "Code/Workflows"
+      - href: articles/index.qmd
+        text: Articles
+
+  sidebar:
+    - id: bulk-rnaseq
+      title: "Bulk RNA-seq"
+      style: floating
+      background: light
+      contents:
+        - pipelines/bulk-rnaseq/index.qmd
+        - section: "Workflow Steps"
+          contents:
+            - pipelines/bulk-rnaseq/01-preprocessing.qmd
+            - pipelines/bulk-rnaseq/02-alignment.qmd
+            - pipelines/bulk-rnaseq/03-quantification.qmd
+            - pipelines/bulk-rnaseq/04-differential-expression.qmd
+            - pipelines/bulk-rnaseq/05-pathway-analysis.qmd
+            - pipelines/bulk-rnaseq/06-TCGA_Scoring.qmd
+
+    - id: scrnaseq
+      title: "Single-cell RNA-seq"
+      style: floating
+      background: light
+      contents:
+        - pipelines/scrnaseq/index.qmd
+        - section: "Workflow Steps"
+          contents:
+            - pipelines/scrnaseq/01-cellranger.qmd
+            - pipelines/scrnaseq/02-cellbender.qmd
+            - pipelines/scrnaseq/03-processing-integration.qmd
+            - pipelines/scrnaseq/04-numbat-cnv-inference.qmd
+
+    - id: spatial
+      title: "Spatial Transcriptomics"
+      style: floating
+      background: light
+      contents:
+        - pipelines/spatial/index.qmd
+        - section: "Visium"
+          contents:
+            - pipelines/spatial/visium/01-spaceranger.qmd
+            - pipelines/spatial/visium/02-st_processing.qmd
+            - pipelines/spatial/visium/03-st_deconvolution.qmd
+            - pipelines/spatial/visium/04-st_clustering.qmd
+            - pipelines/spatial/visium/05-st_nhood_analysis.qmd
+            - pipelines/spatial/visium/06-st_epi_analysis.qmd
+            - pipelines/spatial/visium/07-st_LIANA_Analysis.qmd
+        - section: "Xenium"
+          contents:
+            - pipelines/spatial/xenium/01-st_xenium_segmentation.qmd
+            - pipelines/spatial/xenium/02-st_xenium_processing.qmd
+            - pipelines/spatial/xenium/03-st_xenium_regression.qmd
+            - pipelines/spatial/xenium/04-st_xenium_viz.qmd
+
+    - id: wes
+      title: "Whole Exome Sequencing"
+      style: floating
+      background: light
+      contents:
+        - pipelines/wes/index.qmd
+        - pipelines/wes/01-Data-Preprocessing.qmd
+        - pipelines/wes/02-Variant-Calling.qmd
+        - pipelines/wes/03-CNV-Calling.qmd
+
   page-footer:
-    left: "© 2025 Ahmed Elhossiny"
-    right: "[GitHub](https://github.com/yourusername) | [LinkedIn](https://linkedin.com/in/yourprofile)"
+    left: "© 2026 Ahmed Elhossiny · Memorial Sloan Kettering Cancer Center"
+    center: "Built with [Quarto](https://quarto.org)"
+    right:
+      - icon: github
+        href: https://github.com/aelhossiny
 
 format:
   html:
-    theme: cosmo
+    theme: [cosmo, custom.scss]
     css: styles.css
+    toc: true
+    toc-depth: 3
+    number-sections: false
+    code-fold: true
+    code-summary: "Show code"
+    code-tools: false
+    code-copy: true
+    code-overflow: wrap
+    highlight-style: github
+    smooth-scroll: true
+    anchor-sections: true
+    link-external-icon: true
+    link-external-newwindow: true
+
+execute:
+  freeze: auto

@@ -1,0 +1,48 @@
+/*-- scss:defaults --*/
+
+$primary: #3498db;
+$secondary: #5dade2;
+$body-bg: #1a1a2e;
+$body-color: #e8e8e8;
+
+/*-- scss:rules --*/
+
+// Dark mode adjustments
+.hero-section {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+}
+
+.pipeline-card {
+  background: #16213e;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  border-left-color: $primary;
+  
+  &:hover {
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+  }
+}
+
+.feature-item {
+  background: #16213e;
+  
+  &:hover {
+    background: #1a1a2e;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+  }
+}
+
+div.sourceCode {
+  border-left-color: $primary;
+}
+
+pre.sourceCode {
+  background-color: #0f0f1a;
+}
+
+.workflow-diagram {
+  background: linear-gradient(to right, #16213e, #1a1a2e);
+}
+
+.sidebar nav[role="doc-toc"] {
+  background: #16213e;
+}

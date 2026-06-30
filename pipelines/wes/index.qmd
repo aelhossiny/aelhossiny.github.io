@@ -1,0 +1,117 @@
+---
+title: "WES Analysis Overview"
+author: 
+    name: "Ahmed M. Elhossiny"
+    email: "hossiny@umich.edu"
+execute: 
+    eval: false
+date-modified: last-modified
+bibliography: references.bib
+---
+
+# Overview
+
+Whole Exome Sequencing (WES) refers to the targeted sequencing of the protein-coding regions of the genome, known as exons. These regions represent approximately 1-2% of the human genome contain many known disease-related variants. Whole exome sequencing is a cost-effective approach for identifying genetic variants associated with various diseases and conditions. There are many genomic mutation events that can occur either germline (inhereted from parents) or somatic (acquired during life). Here we will focus on three main types of genomic variations that can be detected using WES data: Single Nucleotide Variations (SNVs), Insertion-Deletions (Indels), and Copy Number Variations (CNVs).
+
+The pipeline described here involves three components:
+
+1. **Data Preprocessing**: This step involves quality control, trimming, and alignment of raw sequencing reads to a reference genome.
+
+2. **Single Nucleotide Variation (SNV) and Insertion-Deletion (Indels) Calling**: This step involves identifying genetic variants (such as single nucleotide polymorphisms and insertions/deletions) from the aligned sequencing data.
+
+3. **Copy Number Variation (CNV) Analysis**: This step involves detecting larger structural variations in the genome, such as duplications or deletions of genomic segments.
+
+```{mermaid}
+flowchart LR
+    A["Raw Sequencing (.fastq)"] --> B["Preprocessing (.fastq)"]
+    B --> C["Alignment (.bam)"]
+    C --> D["BQSR (.bam)"]
+    D --> E["Variant Calling (.vcf)"]
+    E --> F["SNV/Indels Annotation (.vcf/.maf/.avinput)"]
+    D --> G["CNV (.cns/.cnr/.seg)"]
+    
+    style A fill:#e74c3c,color:#fff
+    style B fill:#f39c12,color:#fff
+    style C fill:#3498db,color:#fff
+    style D fill:#9b59b6,color:#fff
+    style E fill:#1abc9c,color:#fff
+    style F fill:#27ae60,color:#fff
+    style G fill:#27ae60,color:#fff
+```
+
+# Recommended Readings
+
+* @bartha2019comprehensive
+* @mason2016detecting
+* @talevich2016cnvkit
+* @nesta2021hotspots
+* [Germline vs. Somatic Mutation](https://microbenotes.com/somatic-vs-germline-mutation/)
+* [How to read SAM file](https://samtools.github.io/hts-specs/SAMv1.pdf)
+* [FASTQ Files Explained](https://knowledge.illumina.com/software/general/software-general-reference_material-list/000002211)
+* [VCF Files](https://pmc.ncbi.nlm.nih.gov/articles/PMC3137218/)
+* [GATK Data Preprocessing Best Practices](https://gatk.broadinstitute.org/hc/en-us/articles/360035535912-Data-pre-processing-for-variant-discovery)
+* [GATK Somatic Variant Calling Best Practices](https://gatk.broadinstitute.org/hc/en-us/articles/360035894731-Somatic-short-variant-discovery-SNVs-Indels-)
+
+# Pipeline Steps
+
+::: {.pipeline-card}
+### [**1. Data Preprocessing**](01-Data-Preprocessing.qmd)
+Quality control, adapter trimming, and alignment to reference genome.
+:::
+
+::: {.pipeline-card}
+### [**2. SNV & Indel Calling**](02-Variant-Calling.qmd)
+Somatic and germline variant calling with GATK, Strelka2, and Mutect2.
+:::
+
+::: {.pipeline-card}
+### [**3. Copy Number Variation**](03-CNV-Calling.qmd)
+Detection of copy number alterations using read depth analysis.
+:::
+
+
+# Required Software
+
+* [R](https://www.r-project.org/) : programming language and environment for statistical computing and graphics
+* [RStudio](https://posit.co/download/rstudio-desktop/) : integrated development environment for R
+* [Python](https://www.python.org/) : programming language for general-purpose programming
+* [cutadapt](https://cutadapt.readthedocs.io/en/stable/index.html) : cutting adapter sequences from high-throughput sequencing reads
+* [fastqc](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/) : quality control tool for raw high throughput sequence data
+* [multiqc](https://seqera.io/multiqc/) : merges results from multiple samples into a single report
+* [samtools](https://www.htslib.org/) : utilities for manipulating alignments in the SAM/BAM format
+* [bwa](https://bio-bwa.sourceforge.net/) : Burrows-wheeler Aligner for mapping low-divergent sequences against a large reference genome
+* [gatk](https://gatk.broadinstitute.org/hc/en-us) : Genome Analysis Toolkit for variant discovery in high-throughput sequencing data
+* [maftools](https://github.com/PoisonAlien/maftools) : R package for analysis and visualization of MAF files from large-scale sequencing studies
+* [strelka2](https://github.com/Illumina/strelka): fast and accurate small variant caller for germline and somatic variants
+* [CNVKit](https://cnvkit.readthedocs.io/en/stable/#) : Copy number detection and visualization toolkit for targeted DNA sequencing
+* [ANNOVAR](https://annovar.openbioinformatics.org/en/latest/) : functional annotation of genetic variants from high-throughput sequencing data
+
+# SLURM Scripts for HPC Clusters
+
+Throughout the pipeline, I will show how to apply different methods on a single sample, and also show to apply them on multiple samples using SLURM scripts on HPC cluster in section as follows
+
+::: {.callout-note title="SLURM Script"}
+To parallelize this workflow on multiple samples using SLURM on an HPC cluster, you can use the following script. It assumes that you have samples manifest in a file called `samples_manifest.txt`, and it will process each sample in parallel using a job array.
+
+```bash
+#!/bin/bash
+
+#SBATCH --account=
+#SBATCH --job-name='job_name_%a'
+#SBATCH --output=logs/job_name_%a.log
+
+#SBATCH --partition=standard
+#SBATCH --mem=180G
+#SBATCH --cpus-per-task=32
+#SBATCH --time=48:00:00
+
+#SBATCH --array=1-<number_of_samples>
+
+SCRIPT
+```
+:::
+
+SLURM scripts can be executed on the command line using the `sbatch` command as follows: `sbatch slurm_script_name.sh`
+
+
+

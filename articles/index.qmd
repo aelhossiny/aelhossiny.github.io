@@ -1,0 +1,16 @@
+---
+title: "Articles"
+subtitle: "Statistical methods, bioinformatics algorithms, and computational biology — written for scientists who want both intuition and rigor."
+listing:
+  contents:
+    - "em-algorithm/*.qmd"
+  sort: "date desc"
+  type: grid
+  grid-columns: 1
+  categories: false
+  fields: [image, title, description, date, reading-time, categories]
+  feed: true
+page-layout: article
+toc: false
+number-sections: false
+---

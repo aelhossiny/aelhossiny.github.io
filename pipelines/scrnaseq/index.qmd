@@ -1,0 +1,106 @@
+---
+title: "Single-cell RNA-seq Pipeline"
+subtitle: "Comprehensive analysis of single-cell transcriptomics data"
+sidebar: scrnaseq
+---
+
+## Overview
+
+This pipeline covers the analysis of single-cell RNA-sequencing data from raw reads to cell type annotation and downstream analysis.
+
+```{mermaid}
+flowchart LR
+    A[Raw FASTQ] --> B[Cell Ranger]
+    B --> C[QC & Filtering]
+    C --> D[Normalization]
+    D --> E[Integration]
+    E --> F[Clustering]
+    F --> G[Annotation]
+    
+    style A fill:#e74c3c,color:white
+    style B fill:#f39c12,color:white
+    style C fill:#3498db,color:white
+    style D fill:#9b59b6,color:white
+    style E fill:#1abc9c,color:white
+    style F fill:#27ae60,color:white
+    style G fill:#2c3e50,color:white
+```
+
+## Pipeline Steps
+
+::: {.pipeline-card}
+### 1. Cell Ranger Processing
+[**Read More →**](01-cellranger.qmd)
+
+Demultiplexing, alignment, and UMI counting with Cell Ranger.
+
+::: {.tag-cloud}
+[Cell Ranger]{.tag}
+[FASTQ]{.tag}
+[10x Genomics]{.tag}
+:::
+:::
+
+::: {.pipeline-card}
+### 2. Ambient RNA Correction
+[**Read More →**](02-cellbender.qmd)
+
+Removing ambient RNA contamination using CellBender.
+
+::: {.tag-cloud}
+[cellbender]{.tag}
+[Ambient RNA correction]{.tag}
+[QC]{.tag}
+:::
+:::
+
+::: {.pipeline-card}
+### 3. Data processing and Integration
+[**Read More →**](03-processing-integration.qmd)
+
+Normalization, identification of highly variable genes, and data integration.
+
+::: {.tag-cloud}
+[Integration]{.tag}
+[Seurat]{.tag}
+[HVGs]{.tag}
+:::
+:::
+
+::: {.pipeline-card}
+### 4. Copy Number Variation Inference
+[**Read More →**](04-numbat-cnv-inference.qmd)
+
+For Tumor samples, infer copy number variations using Numbat.
+
+::: {.tag-cloud}
+[PCA]{.tag}
+[UMAP]{.tag}
+[Louvain]{.tag}
+:::
+:::
+
+
+## Required Inputs
+
+| Input | Description | Source |
+|-------|-------------|--------|
+| Raw FASTQ files | Sequencing reads | Sequencer |
+| Reference genome | Cell Ranger reference | 10x Genomics |
+| Sample metadata | Sample information | User-provided |
+
+## Expected Outputs
+
+- Quality control reports
+- Filtered count matrices
+- UMAP/tSNE visualizations
+- Cluster assignments
+- Cell type annotations
+- Marker gene lists
+- Differential expression between clusters
+
+## Recommended Resources
+
+- [Seurat Tutorial](https://satijalab.org/seurat/)
+- [OSCA Book](https://bioconductor.org/books/release/OSCA/)
+- [10x Genomics Resources](https://www.10xgenomics.com/resources)

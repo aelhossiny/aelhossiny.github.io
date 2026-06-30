@@ -1,0 +1,181 @@
+---
+title: "Gene Quantification"
+subtitle: "Step 3: Generating gene count matrices"
+sidebar: bulk-rnaseq
+---
+## Overview
+
+Gene quantification converts aligned reads into count matrices that can be used for differential expression analysis.
+
+## featureCounts
+
+featureCounts from the Subread package is fast and accurate for counting reads mapped to genomic features.
+
+```{bash}
+#| eval: false
+#| code-fold: false
+
+# Count reads with featureCounts
+featureCounts \
+    -T 8 \
+    -p --countReadPairs \
+    -t exon \
+    -g gene_id \
+    -a Homo_sapiens.GRCh38.110.gtf \
+    -o gene_counts.txt \
+    aligned/*.bam
+```
+
+### Parameters Explained
+
+| Parameter | Description |
+|-----------|-------------|
+| `-p --countReadPairs` | Count fragments instead of reads (PE data) |
+| `-t exon` | Feature type to count |
+| `-g gene_id` | Attribute for grouping features |
+| `-s 2` | Strand-specific (use 1 or 2 based on library) |
+
+## Preparing Count Matrix in R
+
+```{r}
+#| eval: false
+#| code-fold: false
+
+library(tidyverse)
+
+# Read featureCounts output
+counts_raw <- read_tsv("gene_counts.txt", comment = "#")
+
+# Clean up column names and extract counts
+counts <- counts_raw |>
+  select(Geneid, ends_with(".bam")) |>
+  rename_with(~ str_remove(.x, "_Aligned.sortedByCoord.out.bam"), ends_with(".bam")) |>
+  column_to_rownames("Geneid")
+
+# View dimensions
+dim(counts)
+```
+
+## Salmon (Alignment-Free Quantification)
+
+Salmon provides fast, accurate transcript-level quantification without alignment.
+
+### Build Salmon Index
+
+```{bash}
+#| eval: false
+
+# Download transcriptome
+wget https://ftp.ensembl.org/pub/release-110/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz
+
+# Build decoy-aware index
+grep "^>" Homo_sapiens.GRCh38.dna.primary_assembly.fa | cut -d " " -f 1 > decoys.txt
+sed -i.bak -e 's/>//g' decoys.txt
+
+cat Homo_sapiens.GRCh38.cdna.all.fa.gz Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz > gentrome.fa.gz
+
+salmon index -t gentrome.fa.gz -d decoys.txt -p 12 -i salmon_index
+```
+
+### Run Salmon Quantification
+
+```{bash}
+#| eval: false
+#| code-fold: false
+
+#!/bin/bash
+# Salmon quantification
+
+for R1 in trimmed_data/*_R1_trimmed.fastq.gz; do
+    SAMPLE=$(basename ${R1} _R1_trimmed.fastq.gz)
+    R2=trimmed_data/${SAMPLE}_R2_trimmed.fastq.gz
+    
+    salmon quant \
+        -i salmon_index \
+        -l A \
+        -1 ${R1} \
+        -2 ${R2} \
+        -p 8 \
+        --validateMappings \
+        --gcBias \
+        --seqBias \
+        -o salmon_quant/${SAMPLE}
+done
+```
+
+## Import Salmon Results with tximport
+
+```{r}
+#| eval: false
+#| code-fold: false
+
+library(tximport)
+library(tidyverse)
+
+# Create tx2gene mapping
+library(biomaRt)
+mart <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+tx2gene <- getBM(
+  attributes = c("ensembl_transcript_id", "ensembl_gene_id"),
+  mart = mart
+)
+
+# List Salmon quantification files
+files <- list.files("salmon_quant", pattern = "quant.sf", 
+                    recursive = TRUE, full.names = TRUE)
+names(files) <- basename(dirname(files))
+
+# Import with tximport
+txi <- tximport(files, type = "salmon", tx2gene = tx2gene)
+
+# Gene-level counts for DESeq2
+counts <- round(txi$counts)
+```
+
+## Quality Check: Count Distribution
+
+```{r}
+#| eval: false
+
+library(ggplot2)
+
+# Plot library sizes
+lib_sizes <- colSums(counts)
+
+data.frame(
+  sample = names(lib_sizes),
+  counts = lib_sizes
+) |>
+  ggplot(aes(x = reorder(sample, counts), y = counts / 1e6)) +
+  geom_col(fill = "#3498db") +
+  coord_flip() +
+  labs(
+    title = "Library Sizes",
+    x = "Sample",
+    y = "Total Counts (millions)"
+  ) +
+  theme_minimal()
+```
+
+## Filtering Low-Expression Genes
+
+```{r}
+#| eval: false
+#| code-fold: false
+
+# Filter genes with low counts
+# Keep genes with at least 10 counts in at least 3 samples
+keep <- rowSums(counts >= 10) >= 3
+counts_filtered <- counts[keep, ]
+
+# Report filtering
+message(sprintf("Genes before filtering: %d", nrow(counts)))
+message(sprintf("Genes after filtering: %d", nrow(counts_filtered)))
+message(sprintf("Genes removed: %d (%.1f%%)", 
+                nrow(counts) - nrow(counts_filtered),
+                100 * (1 - nrow(counts_filtered) / nrow(counts))))
+```
+
+## Next Steps
+
+With the count matrix prepared, proceed to [Differential Expression Analysis](04-differential-expression.qmd).

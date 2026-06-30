@@ -1,0 +1,157 @@
+---
+title: "Spatial Transcriptomics Pipeline"
+subtitle: "Spatially-resolved gene expression analysis"
+sidebar: spatial
+---
+
+## Overview
+
+Spatial transcriptomics preserves the spatial context of gene expression, enabling analysis of tissue architecture and microenvironments.
+
+```{mermaid}
+flowchart LR
+    subgraph Visium
+        A1[Raw Data] --> B1[Space Ranger]
+        B1 --> C1[Seurat/Scanpy]
+    end
+    
+    subgraph Xenium
+        A2[Raw Data] --> B2[Xenium Ranger]
+        B2 --> C2[Analysis]
+    end
+    
+    C1 --> D[Spatial Analysis]
+    C2 --> D
+    D --> E[Visualization]
+    D --> F[Integration]
+    
+    style A1 fill:#e74c3c,color:white
+    style A2 fill:#e74c3c,color:white
+    style B1 fill:#f39c12,color:white
+    style B2 fill:#f39c12,color:white
+    style D fill:#27ae60,color:white
+```
+
+## Platforms Covered
+
+::: {.pipeline-card}
+### 10x Genomics Visium
+[**View Workflow →**](visium/01-spaceranger.qmd)
+
+Capture areas with ~5,000 spots, each containing 1-10 cells. Genome-wide gene expression with spatial coordinates.
+
+::: {.tag-cloud}
+[Space Ranger]{.tag}
+[Seurat]{.tag}
+[55µm spots]{.tag}
+:::
+:::
+
+::: {.pipeline-card}
+### 10x Genomics Xenium
+[**View Workflow →**](xenium/01-preprocessing.qmd)
+
+In situ hybridization-based platform with subcellular resolution. Targeted panel of genes (~300-5000).
+
+::: {.tag-cloud}
+[Xenium Ranger]{.tag}
+[Single-cell]{.tag}
+[Subcellular]{.tag}
+:::
+:::
+
+## Key Analysis Concepts
+
+### Spot Deconvolution (Visium)
+
+Since Visium spots contain multiple cells, deconvolution estimates cell type composition:
+
+- **RCTD** (Robust Cell Type Decomposition)
+- **SPOTlight**
+- **Cell2location**
+- **Tangram**
+
+### Spatial Domains
+
+Identify spatially coherent regions:
+
+- **BayesSpace** - Bayesian clustering with spatial priors
+- **SpaGCN** - Graph convolutional network approach
+- **STAGATE** - Graph attention network
+
+### Spatially Variable Genes
+
+Find genes with spatial expression patterns:
+
+- **SpatialDE** - Gaussian process regression
+- **SPARK** - Spatial pattern recognition
+- **Trendsceek** - Marked point process
+
+## Quick Start
+
+### Visium with Seurat
+
+```{r}
+#| eval: false
+#| code-fold: false
+
+library(Seurat)
+
+# Load Space Ranger output
+spatial_data <- Load10X_Spatial("spaceranger_output/outs/")
+
+# Basic processing
+spatial_data <- SCTransform(spatial_data, assay = "Spatial")
+spatial_data <- RunPCA(spatial_data)
+spatial_data <- FindNeighbors(spatial_data, dims = 1:30)
+spatial_data <- FindClusters(spatial_data, resolution = 0.8)
+spatial_data <- RunUMAP(spatial_data, dims = 1:30)
+
+# Spatial visualization
+SpatialDimPlot(spatial_data, label = TRUE)
+SpatialFeaturePlot(spatial_data, features = c("EPCAM", "VIM"))
+```
+
+### Visium with Scanpy/Squidpy
+
+```{python}
+#| eval: false
+#| code-fold: false
+
+import scanpy as sc
+import squidpy as sq
+
+# Load data
+adata = sc.read_visium("spaceranger_output/outs/")
+
+# Basic processing
+sc.pp.filter_genes(adata, min_cells=10)
+sc.pp.normalize_total(adata)
+sc.pp.log1p(adata)
+sc.pp.highly_variable_genes(adata, n_top_genes=2000)
+
+# Dimensionality reduction
+sc.pp.pca(adata)
+sc.pp.neighbors(adata)
+sc.tl.umap(adata)
+sc.tl.leiden(adata)
+
+# Spatial visualization
+sq.pl.spatial_scatter(adata, color="leiden")
+```
+
+## Applications
+
+| Application | Methods | Platform |
+|-------------|---------|----------|
+| Tumor microenvironment | Deconvolution, spatial neighborhoods | Both |
+| Tissue architecture | Spatial clustering, domain detection | Both |
+| Cell-cell interactions | Ligand-receptor analysis | Both |
+| Marker mapping | Spatially variable genes | Both |
+| Single-cell resolution | Cell segmentation | Xenium |
+
+## Resources
+
+- [Seurat Spatial Vignette](https://satijalab.org/seurat/articles/spatial_vignette.html)
+- [Squidpy Documentation](https://squidpy.readthedocs.io/)
+- [10x Genomics Spatial Resources](https://www.10xgenomics.com/resources)

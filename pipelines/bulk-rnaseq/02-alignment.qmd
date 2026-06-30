@@ -1,0 +1,161 @@
+---
+title: "Read Alignment"
+subtitle: "Step 2: Mapping reads to the reference genome"
+sidebar: bulk-rnaseq
+---
+
+## Overview
+
+Read alignment maps the trimmed reads to a reference genome. For RNA-seq data, we use splice-aware aligners that can handle reads spanning exon-exon junctions.
+
+## Reference Genome Preparation
+
+### Download Reference Files
+
+```{bash}
+#| eval: false
+#| code-fold: false
+
+# Download human reference genome (GRCh38)
+wget https://ftp.ensembl.org/pub/release-110/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
+
+# Download GTF annotation
+wget https://ftp.ensembl.org/pub/release-110/gtf/homo_sapiens/Homo_sapiens.GRCh38.110.gtf.gz
+
+# Decompress
+gunzip Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
+gunzip Homo_sapiens.GRCh38.110.gtf.gz
+```
+
+## STAR Alignment
+
+STAR is the recommended aligner for RNA-seq due to its speed and accuracy.
+
+### Build STAR Index
+
+```{bash}
+#| eval: false
+#| code-fold: false
+
+# Generate STAR genome index
+STAR --runMode genomeGenerate \
+     --runThreadN 16 \
+     --genomeDir star_index/ \
+     --genomeFastaFiles Homo_sapiens.GRCh38.dna.primary_assembly.fa \
+     --sjdbGTFfile Homo_sapiens.GRCh38.110.gtf \
+     --sjdbOverhang 100
+```
+
+::: {.callout-note}
+## Memory Requirements
+
+STAR index generation requires significant RAM (~32GB for human genome). Adjust `--limitGenomeGenerateRAM` if needed.
+:::
+
+### Run STAR Alignment
+
+```{bash}
+#| eval: false
+#| code-fold: false
+
+#!/bin/bash
+# STAR alignment script
+
+THREADS=16
+STAR_INDEX="star_index"
+INPUT_DIR="trimmed_data"
+OUTPUT_DIR="aligned"
+
+mkdir -p ${OUTPUT_DIR}
+
+for R1 in ${INPUT_DIR}/*_R1_trimmed.fastq.gz; do
+    SAMPLE=$(basename ${R1} _R1_trimmed.fastq.gz)
+    R2=${INPUT_DIR}/${SAMPLE}_R2_trimmed.fastq.gz
+    
+    STAR --runThreadN ${THREADS} \
+         --genomeDir ${STAR_INDEX} \
+         --readFilesIn ${R1} ${R2} \
+         --readFilesCommand zcat \
+         --outFileNamePrefix ${OUTPUT_DIR}/${SAMPLE}_ \
+         --outSAMtype BAM SortedByCoordinate \
+         --outSAMunmapped Within \
+         --outSAMattributes Standard \
+         --quantMode GeneCounts \
+         --twopassMode Basic
+    
+    # Index BAM file
+    samtools index ${OUTPUT_DIR}/${SAMPLE}_Aligned.sortedByCoord.out.bam
+    
+    echo "Completed: ${SAMPLE}"
+done
+```
+
+### STAR Parameters Explained
+
+| Parameter | Description |
+|-----------|-------------|
+| `--twopassMode Basic` | Improves novel junction detection |
+| `--quantMode GeneCounts` | Generates gene counts (alternative to featureCounts) |
+| `--outSAMtype BAM SortedByCoordinate` | Outputs sorted BAM directly |
+
+## Alignment Quality Control
+
+### Mapping Statistics
+
+```{bash}
+#| eval: false
+
+# Collect alignment metrics with Picard
+picard CollectRnaSeqMetrics \
+    I=sample_Aligned.sortedByCoord.out.bam \
+    O=sample_rnaseq_metrics.txt \
+    REF_FLAT=refFlat.txt \
+    STRAND=SECOND_READ_TRANSCRIPTION_STRAND
+
+# Or use samtools
+samtools flagstat sample_Aligned.sortedByCoord.out.bam > sample_flagstat.txt
+```
+
+### Expected Metrics
+
+| Metric | Expected Value |
+|--------|----------------|
+| Uniquely mapped reads | >70% |
+| Multi-mapped reads | <20% |
+| Unmapped reads | <10% |
+| Exonic reads | >60% |
+
+::: {.callout-warning}
+## Red Flags
+
+- **Low mapping rate (<50%)**: Check for contamination or wrong reference
+- **High multi-mapping**: May indicate repetitive content or short reads
+- **High intronic reads**: Check for genomic DNA contamination
+:::
+
+## Alternative: HISAT2
+
+For lower memory requirements, HISAT2 is an excellent alternative:
+
+```{bash}
+#| eval: false
+
+# Build HISAT2 index
+hisat2-build -p 8 reference.fa hisat2_index/genome
+
+# Run alignment
+hisat2 -p 8 -x hisat2_index/genome \
+       -1 sample_R1.fastq.gz \
+       -2 sample_R2.fastq.gz \
+       --rna-strandness RF \
+       --dta \
+       -S sample.sam
+
+# Convert to sorted BAM
+samtools sort -@ 8 -o sample.sorted.bam sample.sam
+samtools index sample.sorted.bam
+```
+
+## Next Steps
+
+With aligned BAM files, proceed to [Quantification](03-quantification.qmd) to generate gene count matrices.

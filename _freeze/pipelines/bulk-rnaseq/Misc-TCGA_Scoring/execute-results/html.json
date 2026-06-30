@@ -1,0 +1,15 @@
+{
+  "hash": "377417ad7f896b28c0b862d7b6a74c99",
+  "result": {
+    "engine": "knitr",
+    "markdown": "---\ntitle: \"TCGA-PAAD Scoring\"\nauthor: \n    name: \"Ahmed M. Elhossiny\"\n    email: \"hossiny@umich.edu\"\nformat: \n    html:\n        toc: true\n        toc-depth: 3\n        code-fold: show\neditor: source\nexecute:\n    eval: false\n---\n\nHere we will use GSVA [@gsva] R package to score certain gene sets of interest in TCGA-PAAD dataset and get their correlation.\n\n## Setup and data import\n\nSeurat objects can be downloaded from Zenodo [here]().\n\n::: {.cell}\n\n```{.r .cell-code}\nlibrary(TCGAbiolinks)\nlibrary(SummarizedExperiment)\nlibrary(edgeR)\nlibrary(qs)\nlibrary(Seurat)\nlibrary(GSVA)\nlibrary(tidyverse)\n\nfibro <- qread(\"../outputs/scRNAseq_Analysis/scRef_fibro.qs\")\nmacs <- qread(\"../outputs/scRNAseq_Analysis/scRef_macs.qs\")\n\nfibro_top_markers <-  fibro@misc$markers %>%\n  group_by(cluster) %>%\n  top_n(n = 30, wt = scores) %>%\n  dplyr::select(gene, cluster) %>%\n  split(f = .$cluster) %>%\n  lapply(pull, gene)\nfibro_top_markers <- fibro_top_markers[-7]\n\nmacs_top_markers <-  macs@misc$markers %>%\n  group_by(cluster) %>%\n  top_n(n = 30, wt = scores) %>%\n  dplyr::select(gene, cluster) %>%\n  split(f = .$cluster) %>%\n  lapply(pull, gene)\nmacs_top_markers <- macs_top_markers[-5]\n\n# Download TCGA-PAAD RNA-seq (raw counts)\nquery <- GDCquery(project = \"TCGA-PAAD\",\n                  data.category = \"Transcriptome Profiling\",\n                  data.type = \"Gene Expression Quantification\",\n                  workflow.type = \"STAR - Counts\")\nGDCdownload(query)\ndata <- GDCprepare(query)\n\n# Extract expression matrix\nexpr <- assay(data, 'fpkm_uq_unstrand')\ngenes <- rowData(data)$gene_name\nrownames(expr) <- genes\nkeep <- setdiff(genes, unique(genes[duplicated(genes)]))\nexpr <- expr[keep,]\n\ntcga_gsva_scores <- ssgseaParam(expr,\n                                # kcdf = 'Gaussian',\n                                geneSets = c(fibro_top_markers, macs_top_markers)) %>%\n  gsva() %>%\n  t()\n\nqsave(tcga_gsva_scores, \"../outputs/scRNAseq_Analysis/tcga_gsva_score.qs\")\n```\n:::\n\n\n\n::: {.cell}\n\n```{.r .cell-code}\ntcga_gsva_scores <- qread(\"../outputs/scRNAseq_Analysis/tcga_gsva_score.qs\")\n```\n:::\n\n\n\n::: {.cell}\n\n```{.r .cell-code}\nmacs_scores <- tcga_gsva_scores[,7:12]\nfibro_scores <- tcga_gsva_scores[,1:6]\ncorr <- cor(fibro_scores, macs_scores, method = 'pearson')\nmy_palette <- colorRampPalette(c(\"blue\", \"red\"))(10)\npheatmap(corr, color = my_palette, border_color = 'white',angle_col = 45, display_numbers = T, fontsize_number = 15, number_color = 'white')\n\nggplot(tcga_gsva_scores, aes(x = `LRRC15+_Fibro`, y = `AltAct_Macs`)) +\n  geom_point() +\n  xlab(\"LRRC15+ Fibro Score\") + ylab(\"AltAct Fibro Score\") +\n  theme_bw()\n```\n:::\n\n\n## Session Information\n\n::: {.cell}\n\n```{.r .cell-code}\nsessionInfo()\n```\n:::\n",
+    "supporting": [],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}

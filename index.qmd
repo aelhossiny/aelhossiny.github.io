@@ -1,13 +1,127 @@
 ---
-title: "Home"
+title: " "
+page-layout: full
+toc: false
+number-sections: false
 ---
 
-# About Me
+::::: {.ap-layout}
 
-Hi, I’m Ahmed — a Bioinformatics PhD student at the University of Michigan working on single-cell and spatial sequencing data in pancreatic cancer.
+:::: {.ap-sidebar}
 
-## Links
-- [GitHub](https://github.com/yourusername)
-- [Google Scholar](https://scholar.google.com/citations?user=XXXXX)
-- [Twitter](https://twitter.com/yourhandle)
-- [CV (PDF)](cv.pdf)
+::: {.ap-profile-card}
+
+![](images/portrait.png){.ap-avatar-wrap style="display:block;margin:0 auto 1.1rem;"}
+
+<p class="ap-profile-name">Ahmed M. Elhossiny</p>
+<p class="ap-profile-role">Postdoctoral Fellow</p>
+<p class="ap-profile-role">Computational Oncology</p>
+<p class="ap-profile-role">Memorial Sloan Kettering Cancer Center</p>
+
+:::
+
+<ul class="ap-social-links">
+<li><a href="https://www.linkedin.com/in/ahmedelhossiny93/" target="_blank"><i class="bi bi-linkedin"></i> LinkedIn</a></li>
+<li><a href="https://scholar.google.com/citations?user=R76GOmMAAAAJ&hl=en" target="_blank"><i class="bi bi-mortarboard-fill"></i> Google Scholar</a></li>
+<li><a href="mailto:elhossa1@mskcc.org"><i class="bi bi-envelope-fill"></i> elhossa1@mskcc.org</a></li>
+<li><a href="https://orcid.org/0000-0003-0884-8754" target="_blank"><i class="bi bi-person-badge-fill"></i> ORCID</a></li>
+<li><a href="pipelines/index.qmd"><i class="bi bi-diagram-3-fill"></i> Code/Workflows</a></li>
+<li><a href="articles/index.qmd"><i class="bi bi-journal-text"></i> Articles</a></li>
+</ul>
+
+::::
+
+:::: {.ap-content}
+
+## About
+
+My research career is defined by a commitment to bridging computational oncology and experimental biology to accelerate the development of translatable therapeutic strategies. Trained as a pharmacist, I developed an early appreciation for the full arc of drug development—from foundational biological discovery to direct patient benefit.
+
+I pursued a PhD in Bioinformatics at the University of Michigan to build the statistical and computational foundation needed to extract meaningful biology from large-scale, complex data. Under interdisciplinary mentorship at Michigan, Johns Hopkins, and Memorial Sloan Kettering, I am focusing on dissecting epithelial and stromal co-evolution in cancer using single-cell and spatial transcriptomics.
+
+<!-- ## Research Interests
+
+::: {.interest-tags}
+[Tumor microenvironment]{.interest-tag}
+[Lineage plasticity]{.interest-tag}
+[Single-cell & spatial multi-omics]{.interest-tag}
+[Cancer evolution]{.interest-tag}
+[Neuroendocrine carcinoma]{.interest-tag}
+[ML for genomics]{.interest-tag}
+::: -->
+
+## Education
+
+- **PhD · Bioinformatics** — University of Michigan, Ann Arbor, MI (2020–2025)
+- **MS · Genetics, Genomics & Bioinformatics** — State University of New York at Buffalo, NY (2018–2020)
+- **BPharm · Pharmacy** — Ain Shams University, Cairo, Egypt (2011–2016)
+
+## Awards & Fellowships
+
+- **Rackham Predoctoral Fellowship** · University of Michigan (2024–2025)
+- **Rackham International Student Fellowship** · University of Michigan (2021)
+- **Fulbright Scholarship** · Egyptian Student Program (2018–2020)
+- **BPharm with Excellent Grade & High Honors** · Ain Shams University (2016)
+
+## Selected Publications
+
+<ul class="pub-list">
+
+<li class="pub-item">
+<span class="pub-title">Asynchronous evolution of epithelium and stroma differentiates precursor lesions from pancreatic cancer </span>
+<span class="pub-authors"><strong>Elhossiny AM</strong>, Kadiyala P, Okoye JO, et al.</span>
+<span class="pub-venue">Cancer Discovery, 2026</span>
+</li>
+
+<li class="pub-item">
+<span class="pub-title">Analysis of Donor Pancreata Defines the Transcriptomic Signature and Microenvironment of Early Neoplastic Lesions</span>
+<span class="pub-authors">Carpenter ES*, <strong>Elhossiny AM</strong>*, Kadiyala P*, et al.</span>
+<span class="pub-venue">Cancer Discovery, 2023</span>
+</li>
+
+<li class="pub-item">
+<span class="pub-title">Oncogenic and tumor-suppressive forces converge on a progenitor-orchestrated niche to shape early tumorigenesis</span>
+<span class="pub-authors">Reyes J, Del Priore I, …, <strong>Elhossiny AM</strong>, …, Lowe SW</span>
+<span class="pub-venue">Cell, 2026</span>
+</li>
+
+<li class="pub-item">
+<span class="pub-title">Immune heterogeneity in small-cell lung cancer and vulnerability to immune checkpoint blockade</span>
+<span class="pub-authors">Nabet BY, …, <strong>Elhossiny AM</strong>, …, Shames DS</span>
+<span class="pub-venue">Cancer Cell, 2024</span>
+</li>
+
+<li class="pub-item">
+<span class="pub-title">Immunocompetent Murine Models Recapitulate the Heterogeneous Tumor-Immune Microenvironment of Human Liposarcoma</span>
+<span class="pub-authors">Shafer AM, …, <strong>Elhossiny AM</strong>, …, Angeles CV</span>
+<span class="pub-venue">Clinical Cancer Research, 2025</span>
+</li>
+
+<li class="pub-item">
+<span class="pub-title">Proximogram — A multi-omics network-based framework to capture tissue heterogeneity</span>
+<span class="pub-authors">Krishnan SN, Ji S, <strong>Elhossiny AM</strong>, et al.</span>
+<span class="pub-venue">Computers in Biology and Medicine, 2024</span>
+</li>
+
+</ul>
+
+
+<!-- ## Skills
+
+::: {.skill-tags}
+[R]{.skill-tag}
+[Python]{.skill-tag}
+[Seurat]{.skill-tag}
+[Scanpy]{.skill-tag}
+[Nextflow]{.skill-tag}
+[PyTorch]{.skill-tag}
+[Bash]{.skill-tag}
+[HPC/Slurm]{.skill-tag}
+[scRNA-seq]{.skill-tag}
+[Spatial transcriptomics]{.skill-tag}
+[WES]{.skill-tag}
+::: -->
+
+::::
+
+:::::

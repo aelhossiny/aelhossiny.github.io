@@ -1,0 +1,198 @@
+---
+title: "The EM Algorithm, Part 3: The Rigorous Treatment"
+date: "2025-06-15"
+description: "Proofs, calculus, and formal guarantees — the ELBO/KL decomposition, E-step optimality, closed-form M-step, the monotonicity theorem, and convergence to a stationary point."
+categories: [statistics, machine-learning, algorithms, EM-algorithm]
+number-sections: false
+toc: true
+toc-depth: 3
+---
+
+> **Three-part series.**
+> 1. [The Intuition](01-intuition.qmd) — the idea, no heavy math.
+> 2. [Math with Intuition](02-math.qmd) — every equation, explained in plain words.
+> 3. **The Rigorous Treatment** *(you are here)* — proofs, calculus, and the formal guarantees.
+
+This part proves what the earlier parts asserted: the ELBO/KL decomposition, the optimality of the E-step, the closed-form M-step, the monotonicity theorem, and convergence to a stationary point. The two-coin model is the running concrete instance.
+
+---
+
+## 1. The latent-variable model
+
+Observed data $X = (x_1,\dots,x_n)$, latent variables $Z = (z_1,\dots,z_n)$, parameters $\theta$. The model specifies a joint $p(x_i, z_i\mid\theta)$, and the observed-data likelihood marginalizes the latents:
+
+$$p(x_i\mid\theta) = \sum_{z_i} p(x_i, z_i\mid\theta), \qquad \ell(\theta) = \sum_{i=1}^n \log p(x_i\mid\theta).$$
+
+**Coin instance.** $z_i\in\{A,B\}$, $p(z_i{=}A)=\pi_A$, $p(x_i\mid z_i{=}A,\theta)=b_{iA}:=\binom{m}{x_i}\theta_A^{x_i}(1-\theta_A)^{m-x_i}$, so $p(x_i\mid\theta)=\pi_A b_{iA}+\pi_B b_{iB}$ with $\theta=(\theta_A,\theta_B)$, $\pi_A=\pi_B=\tfrac12$, $m=10$.
+
+The difficulty is structural: $\ell$ contains $\log\sum_{z_i}(\cdot)$, a log-of-a-sum, which is not separable in $\theta$ and admits no closed-form maximizer.
+
+## 2. Jensen's inequality and a corollary
+
+**Theorem (Jensen).** If $\varphi:\mathbb{R}\to\mathbb{R}$ is concave and $X$ a random variable with finite mean, then $\varphi(\mathbb{E}[X]) \ge \mathbb{E}[\varphi(X)]$, with equality iff $X$ is almost surely constant or $\varphi$ is affine on the support of $X$. For a finite convex combination, $\varphi\big(\sum_k \lambda_k x_k\big) \ge \sum_k \lambda_k \varphi(x_k)$ with $\lambda_k\ge 0$, $\sum_k\lambda_k = 1$.
+
+![Jensen's inequality: a concave curve lies above its chords](fig_jensen.png)
+
+**Corollary (Gibbs' inequality; non-negativity of KL).** For distributions $q, p$ over the same finite set,
+
+$$\mathrm{KL}(q\,\|\,p) := \sum_z q(z)\log\frac{q(z)}{p(z)} \ge 0,\qquad \text{equality iff } q\equiv p.$$
+
+*Proof.* Apply Jensen to the concave $\log$:
+
+$$-\mathrm{KL}(q\|p) = \sum_z q(z)\log\frac{p(z)}{q(z)} \le \log\sum_z q(z)\frac{p(z)}{q(z)} = \log\sum_z p(z) = \log 1 = 0.$$
+
+Equality in Jensen requires $p(z)/q(z)$ constant on the support, i.e. $q\equiv p$. $\;\blacksquare$
+
+Note that this is the *same* inequality that makes the ELBO a lower bound — seen once as $\ell \ge \mathcal{L}$ and once as $\mathrm{KL}\ge 0$.
+
+## 3. The ELBO and the exact decomposition
+
+For any distribution $q(z_i)$ with the same support as the posterior, define the **evidence lower bound**
+
+$$\mathcal{L}(q,\theta) := \sum_i \sum_{z_i} q(z_i)\log\frac{p(x_i,z_i\mid\theta)}{q(z_i)}.$$
+
+**Theorem (decomposition).** For every $q$ and $\theta$,
+
+$$\ell(\theta) = \mathcal{L}(q,\theta) + \sum_i \mathrm{KL}\big(q(z_i)\,\|\,p(z_i\mid x_i,\theta)\big).$$
+
+*Proof (one experiment; sum over $i$ at the end).* Since $\sum_{z}q(z)=1$ and using $p(x\mid\theta)=p(x,z\mid\theta)/p(z\mid x,\theta)$,
+
+$$\log p(x\mid\theta) = \sum_z q(z)\log p(x\mid\theta) = \sum_z q(z)\log\frac{p(x,z\mid\theta)}{p(z\mid x,\theta)}.$$
+
+Insert $q(z)/q(z)=1$ inside the log and split the resulting product:
+
+$$= \sum_z q(z)\log\!\Big[\frac{p(x,z\mid\theta)}{q(z)}\cdot\frac{q(z)}{p(z\mid x,\theta)}\Big] = \underbrace{\sum_z q(z)\log\frac{p(x,z\mid\theta)}{q(z)}}_{\mathcal{L}(q,\theta)} + \underbrace{\sum_z q(z)\log\frac{q(z)}{p(z\mid x,\theta)}}_{\mathrm{KL}(q\,\|\,p(z\mid x,\theta))}.\;\blacksquare$$
+
+Because $\mathrm{KL}\ge 0$, we recover $\mathcal{L}(q,\theta)\le\ell(\theta)$ for all $q$, with equality iff $q(z_i)=p(z_i\mid x_i,\theta)$ for all $i$.
+
+::: {.callout-note collapse="true"}
+### Aside: the two-term form of the ELBO and the notation ":=".
+
+Splitting $\log\frac{p}{q}=\log p-\log q$ and reading each sum as an expectation gives
+
+$$\mathcal{L}(q,\theta) = \sum_i \mathbb{E}_{q}\big[\log p(x_i,z_i\mid\theta)\big] - \sum_i \mathbb{E}_{q}\big[\log q(z_i)\big].$$
+
+The first term is the $\theta$-dependent **expected complete-data log-likelihood** $Q(\theta)$ (Section 5); the second is the negative entropy $-H(q)$, independent of $\theta$. The symbol "$=:$" (as in $(\cdots) =: \mathcal{L}$) means "the left side *defines* the new name on the colon side" — it is an equality by definition, not a derived identity. ($:=$ is the same with the new name on the left.)
+:::
+
+## 4. The E-step: optimal q
+
+**Proposition.** For fixed $\theta$, $\;\arg\max_{q}\mathcal{L}(q,\theta) = \arg\min_{q}\sum_i\mathrm{KL}\big(q(z_i)\,\|\,p(z_i\mid x_i,\theta)\big) = \big(p(z_i\mid x_i,\theta)\big)_i$, and at this optimum $\mathcal{L}(q,\theta)=\ell(\theta)$.
+
+*Proof.* In the decomposition $\ell(\theta)=\mathcal{L}(q,\theta)+\sum_i\mathrm{KL}(\cdots)$, the term $\ell(\theta)$ does not depend on $q$. Hence maximizing $\mathcal{L}$ over $q$ is equivalent to minimizing the (non-negative) KL sum, which attains its floor of $0$ exactly at $q(z_i)=p(z_i\mid x_i,\theta)$. $\;\blacksquare$
+
+**Coin instance (responsibilities).** By Bayes' rule, with the binomial coefficient cancelling,
+
+$$\gamma_i := p(z_i{=}A\mid x_i,\theta) = \frac{\pi_A\,\theta_A^{x_i}(1-\theta_A)^{m-x_i}}{\pi_A\,\theta_A^{x_i}(1-\theta_A)^{m-x_i} + \pi_B\,\theta_B^{x_i}(1-\theta_B)^{m-x_i}}.$$
+
+## 5. The M-step: maximizing Q
+
+With $q$ fixed (entropy term constant in $\theta$), maximizing $\mathcal{L}(q,\theta)$ over $\theta$ is maximizing
+
+$$Q(\theta) = \sum_i \mathbb{E}_{q}\big[\log p(x_i,z_i\mid\theta)\big] = \sum_i\Big[\gamma_i\log(\pi_A b_{iA}) + (1-\gamma_i)\log(\pi_B b_{iB})\Big].$$
+
+**Coin instance.** Using $\log(\pi_A b_{iA}) = \text{const} + x_i\log\theta_A + (m-x_i)\log(1-\theta_A)$,
+
+$$\frac{\partial Q}{\partial\theta_A} = \sum_i \gamma_i\Big[\frac{x_i}{\theta_A} - \frac{m-x_i}{1-\theta_A}\Big] = \frac{1}{\theta_A(1-\theta_A)}\sum_i \gamma_i\,(x_i - m\theta_A).$$
+
+Setting this to zero — and noting $\gamma_i$ is a **constant** here (frozen by the E-step) — gives a linear equation with the closed-form root
+
+$$\boxed{\;\theta_A^{(t+1)} = \frac{\sum_i \gamma_i\, x_i}{m\sum_i \gamma_i}, \qquad \theta_B^{(t+1)} = \frac{\sum_i (1-\gamma_i)\, x_i}{m\sum_i (1-\gamma_i)}\;}$$
+
+The two updates are decoupled because $\theta_B$'s terms in $Q$ carry coefficient $(1-\gamma_i)$ and vanish under $\partial/\partial\theta_A$.
+
+::: {.callout-note collapse="true"}
+### Lemma: the binomial derivative used above.
+
+For $b(\theta)=\binom{m}{x}\theta^{x}(1-\theta)^{m-x}$,
+
+$$\frac{d}{d\theta}\log b = \frac{x}{\theta} - \frac{m-x}{1-\theta} = \frac{x - m\theta}{\theta(1-\theta)}, \quad\text{so}\quad \frac{db}{d\theta} = b\cdot\frac{x - m\theta}{\theta(1-\theta)}.$$
+
+This is what makes both the $\partial Q/\partial\theta_A$ above and the $\partial\ell/\partial\theta_A$ in Section 6 collapse to factors of $(x_i - m\theta_A)$.
+:::
+
+## 6. Why no closed form exists for ℓ directly
+
+It is instructive to differentiate the *intractable* $\ell$ and see precisely where it jams. With $p_i = \pi_A b_{iA} + \pi_B b_{iB}$,
+
+$$\frac{\partial\ell}{\partial\theta_A} = \sum_i \frac{1}{p_i}\,\frac{\partial p_i}{\partial\theta_A} = \sum_i \frac{1}{p_i}\,\pi_A\frac{\partial b_{iA}}{\partial\theta_A} = \frac{1}{\theta_A(1-\theta_A)}\sum_i \underbrace{\frac{\pi_A b_{iA}}{p_i}}_{=\,\gamma_i}\,(x_i - m\theta_A).$$
+
+The chain rule on the outer $\log$ drops a $1/p_i$ whose denominator $p_i$ contains **both** $\theta_A$ and $\theta_B$. Equivalently, the prefactor $\gamma_i = \pi_A b_{iA}/p_i$ is itself a nonlinear function of $(\theta_A,\theta_B)$. Setting $\partial\ell/\partial\theta_A=0$ therefore yields
+
+$$\theta_A = \frac{\sum_i\gamma_i x_i}{m\sum_i\gamma_i}\quad\text{with}\quad \gamma_i = \gamma_i(\theta_A,\theta_B),$$
+
+an **implicit, transcendental, coupled** system: $\theta_A$ appears on the left and (through $\gamma_i$) nonlinearly on the right, and the twin equation for $\theta_B$ mirrors it. No finite algebraic formula solves it.
+
+EM's resolution is exactly the comparison of Sections 5 and 6: **freezing $\gamma_i$ at $\theta^{(t)}$** converts the same stationarity equation into a linear one with a closed-form root. EM is thus a fixed-point iteration $\theta^{(t+1)} = M(\theta^{(t)})$ for the coupled score equations, solved by alternation; a fixed point satisfies the true $\nabla\ell = 0$ (Section 8).
+
+## 7. The monotonicity theorem
+
+**Theorem.** Let $q^{(t)}(z_i) = p(z_i\mid x_i,\theta^{(t)})$ (E-step) and $\theta^{(t+1)} = \arg\max_\theta Q(\theta;\theta^{(t)})$ where $Q(\theta;\theta^{(t)}) = \mathbb{E}_{q^{(t)}}[\log p(X,Z\mid\theta)]$ (M-step). Then
+
+$$\ell(\theta^{(t+1)}) \ge \ell(\theta^{(t)}).$$
+
+*Proof.* Write the decomposition with $q = q^{(t)}$ and abbreviate $H = -\sum_i\mathbb{E}_{q^{(t)}}[\log q^{(t)}]$ (the $\theta$-free entropy), so that $\mathcal{L}(q^{(t)},\theta) = Q(\theta;\theta^{(t)}) + H$. Then
+
+$$\begin{aligned}
+\ell(\theta^{(t+1)})
+&= \mathcal{L}(q^{(t)},\theta^{(t+1)}) + \underbrace{\textstyle\sum_i\mathrm{KL}\big(q^{(t)}\,\|\,p(z_i\mid x_i,\theta^{(t+1)})\big)}_{\ge\,0} \\
+&\ge \mathcal{L}(q^{(t)},\theta^{(t+1)}) = Q(\theta^{(t+1)};\theta^{(t)}) + H \\
+&\ge Q(\theta^{(t)};\theta^{(t)}) + H \qquad (\theta^{(t+1)}\text{ maximizes } Q) \\
+&= \mathcal{L}(q^{(t)},\theta^{(t)}) = \ell(\theta^{(t)}) \qquad (\mathrm{KL}=0 \text{ at } \theta^{(t)}).\;\blacksquare
+\end{aligned}$$
+
+Since $\ell$ is non-decreasing and (here) bounded above, the sequence $\ell(\theta^{(t)})$ converges.
+
+![EM as a staircase of lower bounds climbing the log-likelihood](fig_staircase.png)
+
+## 8. Convergence to a stationary point
+
+Define the gap as a function of $\theta$ with $q = q^{(t)}$ fixed: $G(\theta) := \sum_i\mathrm{KL}\big(q^{(t)}\,\|\,p(z_i\mid x_i,\theta)\big) \ge 0$. By construction $G(\theta^{(t)}) = 0$, so $\theta^{(t)}$ is a global minimizer of $G$, whence (assuming differentiability) $\nabla G(\theta^{(t)}) = 0$. Differentiating the decomposition $\ell = \mathcal{L}(q^{(t)},\cdot) + G$ at $\theta^{(t)}$ gives the **tangency identity**
+
+$$\nabla\ell(\theta^{(t)}) = \nabla_\theta \mathcal{L}(q^{(t)},\theta)\big|_{\theta^{(t)}} = \nabla_\theta Q(\theta;\theta^{(t)})\big|_{\theta^{(t)}}.$$
+
+Consequently, if $\theta^\star$ is a fixed point of EM, then $\theta^\star$ maximizes $Q(\cdot;\theta^\star)$, so $\nabla_\theta Q(\theta^\star;\theta^\star)=0$, and by tangency $\nabla\ell(\theta^\star) = 0$: **every EM fixed point is a stationary point of the marginal log-likelihood.** (EM may converge to a local maximum or saddle, not necessarily the global maximum; initialization matters.)
+
+The tangency also explains the *rate*: near $\theta^\star$ each bound peaks almost directly above its contact point, so steps shrink and the tail is linear (slow).
+
+![Real ELBO bounds touching and being climbed (1-D slice, θ_B fixed at 0.52)](fig_elbo_bounds.png)
+
+The figure (a 1-D slice fixing $\theta_B=0.52$) shows each amber ELBO touching $\ell$ at a green point where $q$ equals the posterior (KL $=0$), the M-step reaching its peak (orange diamond), and the reopened KL gap between each diamond and the next contact point above it.
+
+::: {.callout-note collapse="true"}
+### Aside: EM as coordinate ascent on a single objective.
+
+Both steps maximize the *same* function $\mathcal{L}(q,\theta)$: the E-step ascends in $q$ (with $\theta$ fixed) to $q = $ posterior; the M-step ascends in $\theta$ (with $q$ fixed) to $\arg\max_\theta Q$. EM is therefore block-coordinate ascent on $\mathcal{L}$, which converges to a stationary point of $\mathcal{L}$; by the decomposition, stationary points of $\mathcal{L}$ in $(q,\theta)$ project to stationary points of $\ell$ in $\theta$.
+:::
+
+::: {.callout-note collapse="true"}
+### Aside: generalization beyond two coins.
+
+Nothing above is special to binomials. For any model with complete-data likelihood in an exponential family, the M-step replaces sufficient statistics by their posterior expectations under $q^{(t)}$ (expected sufficient statistics), and the E-step computes those expectations. Gaussian mixtures, HMMs (Baum–Welch), and factor analysers are all instances: same decomposition, same monotonicity proof, same tangency-based stationarity.
+:::
+
+## 9. Numerical appendix
+
+EM on $X=(5,9,8,4,7)$, $m=10$, $\pi_A=\pi_B=\tfrac12$, seed $\theta^{(0)}=(0.55,0.45)$. Responsibilities $\gamma^{(t)}$ are computed at $\theta^{(t)}$; the row shows the resulting $\theta^{(t+1)}$ and the new $\ell$.
+
+| $t$ | $\gamma^{(t)}$ (per experiment) | $\theta_A^{(t+1)}$ | $\theta_B^{(t+1)}$ | $\ell(\theta^{(t+1)})$ |
+|:-:|:--|:-:|:-:|:-:|
+| 0 | $[0.500,\,0.833,\,0.769,\,0.401,\,0.691]$ | 0.7073 | 0.5765 | $-10.1061$ |
+| 1 | $[0.305,\,0.813,\,0.710,\,0.198,\,0.580]$ | 0.7435 | 0.5691 | $-9.9552$ |
+| 2 | $[0.222,\,0.868,\,0.750,\,0.115,\,0.578]$ | 0.7671 | 0.5500 | $-9.8574$ |
+| 3 | — | 0.7826 | 0.5350 | $-9.8126$ |
+| 4 | — | 0.7908 | 0.5265 | $-9.8000$ |
+| 5 | — | 0.7944 | 0.5225 | $-9.7974$ |
+| $\vdots$ | | $\vdots$ | $\vdots$ | $\vdots$ |
+| $\to$ | converged | $0.7968$ | $0.5196$ | $-9.7969$ |
+
+![EM convergence from an off-target seed](fig_convergence.png)
+
+**Worked first update (verification):**
+$$\theta_A^{(1)} = \frac{0.500(5)+0.833(9)+0.769(8)+0.401(4)+0.691(7)}{10\,(0.500+0.833+0.769+0.401+0.691)} = \frac{22.59}{31.94} = 0.7073.$$
+
+The log-likelihood column is monotone non-decreasing (Section 7); $\theta_B$ is non-monotone (it overshoots to $0.5765$ then relaxes), consistent with the theorem guaranteeing ascent only in $\ell$, not in individual coordinates.
+
+---
+
+← [Part 2 — Math with Intuition](02-math.qmd) | [Back to Part 1 — The Intuition](01-intuition.qmd)

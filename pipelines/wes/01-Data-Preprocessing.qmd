@@ -1,0 +1,765 @@
+---
+title: "WES Preprocessing"
+author: 
+    name: "Ahmed M. Elhossiny"
+    email: "hossiny@umich.edu"
+editor: source
+execute: 
+    eval: false
+date-modified: last-modified
+bibliography: references.bib
+---
+
+# Introduction
+
+In this page, we will wake through the processing of WES raw fastq files to processed BAM files ready for either variant calling or CNV analysis. This includes quality control, trimming, and alignment of raw sequencing reads to a reference genome. Genomics/Sequencing core in different institutes usually provided raw sequencing files as well as processed BAM files based on a standard pipeline, if that is the case, one can skip this step and move directly to variant calling or CNV analysis. However, if you have multiple samples from different runs or different resources it is recommended to process all samples using the same pipeline to avoid batch effects.
+
+# Analysis Steps
+
+The analysis steps include the following:
+
+1. [Quality Control of Raw Reads](#quality_control)
+2. [Trimming Adapters and Low-Quality Bases](#trimming_adapters)
+3. [Downloading references for alignment and variant calling](#download_references)
+4. [Reads alignment to Reference Genome](#reads_alignment)
+5. [Post-Alignment Processing using GATK Best Practices for Variant Calling](#GATK_preprocessing)
+
+:::{.callout-tip}
+* Most of the mentioned softwares were previously installed on the HPC clusters which were used to run this analysis pipeline. If you are using a different HPC cluster or local machine, you may need to install these softwares first.
+
+* Most of the times fastq files come as paired-end, where each sample will have two fastq files (R1 & R2), where each read is sequencing from both ends. You can read more about paired-end sequencing [here](https://www.illumina.com/science/technology/next-generation-sequencing/plan-experiments/paired-end-vs-single-read.html). 
+
+* As indicated before, throughout the pipeline, I will show how to apply different methods on a single sample, and also show to apply them on multiple samples using SLURM scripts on HPC cluster
+:::
+
+# Step 1: Quality Control of Raw Reads {#quality_control}
+
+Before starting the analysis, it is important to assess the quality of the raw sequencing reads. This can be done using FastQC and MultiQC, which provides a comprehensive report on various quality metrics. 
+
+Running FastQC
+
+```bash
+fastqc -o . -f fastq -t 32 <FASTQ FILE(S)>
+```
+
+Notes about reading QC reports can be found [here](https://hbctraining.github.io/Intro-to-rnaseq-hpc-salmon/lessons/qc_fastqc_assessment.html). One of the most notable thing is adapter trimming.
+
+::: {.callout-note title="SLURM Script"}
+
+To parallelize this workflow on multiple samples using SLURM on an HPC cluster, you can use the following script.
+
+* Input :`fastq_manifest.txt` with two columns, the first one has sample name and the second one has directory containing for the fastq files for the sample. 
+* Output : HTML QC reports in a directory `outputs/QC`
+
+Example 
+
+| column1 | column2 |
+|--------|---------------|
+| sample1 | path/to/sample1_R1.fastq.gz | 
+| sample1 | path/to/sample2_R2.fastq.gz |
+| ...    | ...           |
+
+```bash
+#!/bin/bash
+
+#SBATCH --account=
+#SBATCH --job-name='samples_QC_%a'
+#SBATCH --output=logs/samples_QC_%a.log
+
+#SBATCH --partition=standard
+#SBATCH --mem=16G
+#SBATCH --cpus-per-task=8
+#SBATCH --time=08:00:00
+#SBATCH --array=1-<number_of_samples>
+
+ml fastqc
+mkdir -p outputs/QC
+
+fastq_manifest=outputs/fastq_manifest.txt
+current_fastqs=$(cat $fastq_manifest | cut -f2 | sed -n $[SLURM_ARRAY_TASK_ID]p)
+## fastqs=$(find $current_fastqs -mindepth 1 -name '*.fq.gz' | tr '\n' ' ') ## If the files end with .fq extension
+fastqs=$(find $current_fastqs -mindepth 1 -name '*.fq.gz' | tr '\n' ' ') ## If the files end with .fq.gz extension
+
+echo ':: Runnign FASTQC'
+fastqc -o outputs/QC \
+-f fastq \
+-t 32 \
+$fastqs
+```
+
+Running MultiQC to aggregate FastQC reports. 
+
+```bash
+#!/bin/bash
+echo ':: Running MultiQC'
+multiqc outputs/QC -o outputs/QC
+```
+
+Notes about reading MultiQC reports can be found [here](https://docs.seqera.io/multiqc/reports).
+:::
+
+
+# Step 2: Trimming Adapters and Low-Quality Bases {#trimming_adapters}
+
+Often times, sequencing reads contain adapter sequences and low-quality bases that can interfere with downstream analysis. To address this, we will use Cutadapt to trim adapters and low-quality bases from the reads. You have to define the adapter sequences based on the library preparation kit used for sequencing. Here, we will use the Illumina TruSeq adapter sequences as an example. You can read more [here](https://cutadapt.readthedocs.io/en/stable/guide.html#illumina-truseq)
+
+```bash
+cutadapt \
+    -a AGATCGGAAGAGCACACGTCTGAACTCCAGTCA \
+    -A AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT \
+    -o <R1_Output> -p <R2_Output> \
+    <R1_fastq> <R2_fastq>
+
+```
+
+::: {.callout-note title="SLURM Script"}
+To parallelize this workflow on multiple samples using SLURM on an HPC cluster, you can use the following script.
+
+* Input : `R1_R2_fastq_manifest.txt` with three columns, the first one has sample name and the second one has path for R1 fastq file and the third column contains the path for R2 fastq file.
+* Output : trimmed fastq files in a directory `outputs/trimmed_fastq`
+
+| column1 | column2 | column3 |
+|--------|---------------|---------------|
+| sample1 | path/to/sample1_R1.fastq.gz | path/to/sample1_R2.fastq.gz |
+| sample2 | path/to/sample2_R1.fastq.gz | path/to/sample2_R2.fastq.gz |
+| ...    | ...           | ...           |
+
+```bash
+#!/bin/bash
+
+#SBATCH --account=
+#SBATCH --job-name='adaptor_trimming_%a'
+#SBATCH --output=logs/adaptor_trimming_%a.log
+
+#SBATCH --partition=standard
+#SBATCH --mem=180G
+#SBATCH --cpus-per-task=32
+#SBATCH --time=48:00:00
+
+#SBATCH --array=1-<number_of_samples>
+
+## Loading Important Modules from Greatlakes HPC
+ml cutadapt
+
+mkdir -p outputs/trimmed_fastq
+outputDir=outputs/trimmed_fastq
+
+## Setting up variables for files and directories
+samples_manifest=R1_R2_fastq_manifest.txt
+
+## Subsetting a sample
+sample=$(cat $samples_manifest | cut -f1 | sed -n $[SLURM_ARRAY_TASK_ID]p)
+R1=$(cat $samples_manifest | cut -f2 | sed -n $[SLURM_ARRAY_TASK_ID]p)
+R2=$(cat $samples_manifest | cut -f3 | sed -n $[SLURM_ARRAY_TASK_ID]p)
+R1_output=${outputDir}/trimmed_$(basename $R1)
+R2_output=${outputDir}/trimmed_$(basename $R2)
+
+## Logging information
+echo "::> Analyzing Sample $sample" 
+echo -e "::> R1 path $R1"
+echo -e "::> R2 path $R2"
+echo -e "::> Results will be stored in the same directory of the original files"
+
+echo "::> Running cutadapt <::"
+cutadapt \
+    -a AGATCGGAAGAGCACACGTCTGAACTCCAGTCA \
+    -A AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT \
+    -o $R1_output -p $R2_output \
+    $R1 $R2
+```
+:::
+
+# Step 3: Downloading references for alignment {#download_references}
+
+## Human (hg38)
+
+Here we will download reference files required for alignment and variant calling using GATK best practices for human genome (hg38).
+
+### Loading necessary modules and creating reference directory
+
+```bash
+### Load necessary modules
+ml bwa
+ml samtools
+ml gatk
+ml picard-tools
+
+### Create reference directory
+mkdir data/references
+refDir=data/references
+```
+
+### Downloading Reference Genome
+
+```bash
+### Download References Genome from UCSC (Ignore these lines if you already downloaded the references genome)
+wget http://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz -O .${refDir}/hg38.fa.gz
+gunzip ${refDir}/hg38.fa.gz
+
+### Index References Genome
+bwa index ${refDir}/hg38.fa
+samtools faidx ${refDir}/hg38.fa
+gatk CreateSequenceDictionary -R ${refDir}/hg38.fa
+
+### or use Create Sequence Dictionary using picard
+java -jar picard.jar CreateSequenceDictionary R=${refDir}/hg38.fa O=${refDir}/hg38.dict
+
+### Download Resources from GATK Google Cloud Bucket (Recommneded for GATK workflow)
+## https://console.cloud.google.com/storage/browser/genomics-public-data/resources/broad/hg38/v0;tab=objects?prefix=&forceOnObjectsSortingFiltering=false
+## https://console.cloud.google.com/storage/browser/gatk-best-practices/somatic-hg38;tab=objects?prefix=&forceOnObjectsSortingFiltering=false
+## NOTE : You might need to download crcmod via `pip install crcmod`
+#gsutil cp gs://genomics-public-data/resources/broad/hg38/v0/Homo_sapiens_assembly38.* $refDir
+gsutil cp gs://genomics-public-data/resources/broad/hg38/v0/* $refDir
+```
+
+### Downloading Ref Flat for gene annotations
+
+```bash
+### Download refFlat
+wget https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/refFlat.txt.gz -O ${refDir}/refFlat.txt.gz
+gunzip ${refDir}/refFlat.txt.gz
+
+```
+
+### Downloading 1000-Genomes Panel of Normals, gnomAD allele-frequency database & ExAC variants database.
+
+```bash
+gsutil cp gs://gatk-best-practices/somatic-hg38/1000g_pon.hg38.* $refDir
+gsutil cp gs://gatk-best-practices/somatic-hg38/af-only-gnomad.hg38.* $refDir
+gsutil cp gs://gatk-best-practices/somatic-hg38/small_exac_common_3.hg38.* $refDir
+gatk FuncotatorDataSourceDownloader --somatic --validate-integrity --extract-after-download -O $refDir
+```
+
+### Downloading Human exome bed file
+
+```bash
+### Download exome bed file
+wget https://www.twistbioscience.com/sites/default/files/resources/2022-12/hg38_exome_v2.0.2_targets_sorted_validated.re_annotated.bed -O $refDir/hg38_exome_v2.0.2_targets_sorted_validated.re_annotated.bed
+```
+
+## Mouse (mm39)
+
+### Loading necessary modules and creating reference directory
+
+```bash
+### Load necessary modules
+ml bwa
+ml samtools
+ml gatk
+ml picard-tools
+
+### Create reference directory
+mkdir data/references
+refDir=data/references
+```
+
+### Downloading Reference Genome
+
+```bash
+wget https://hgdownload.soe.ucsc.edu/goldenPath/mm39/bigZips/mm39.fa.gz -O ${refDir}/mm39.fa.gz
+gunzip ${refDir}/mm39.fa.gz
+
+bwa index ${refDir}/mm39.fa
+samtools faidx ${refDir}/mm39.fa
+gatk CreateSequenceDictionary -R ${refDir}/mm39.fa
+```
+
+### Downloading Ref Flat for gene annotations
+
+```bash
+wget https://hgdownload.soe.ucsc.edu/goldenPath/mm39/database/refFlat.txt.gz -o ${refDir}/refFlat.txt.gz
+gunzip ${refDir}/refFlat.txt.gz
+```
+
+### Downloading Known sites for BQSR processing
+
+```bash
+## mm10
+## for mm10 as described in (https://github.com/igordot/genomics/blob/master/workflows/gatk-mouse-mm10.md)
+
+## NCBI SNPs database
+vcf=${refDir}/00-All.vcf.gz
+wget ftp://ftp.ncbi.nih.gov/snp/organisms/archive/mouse_10090/VCF/00-All.vcf.gz -O $vcf
+vcf_new=${refDir}/00-All.vcf_mm10.gz
+zcat $vcf | sed 's/^\([0-9XY]\)/chr\1/' > $vcf_new
+rm -fv $vcf
+
+## MGP database for indels
+wget ftp://ftp-mouse.sanger.ac.uk/REL-1505-SNPs_Indels/mgp.v5.merged.indels.dbSNP142.normed.vcf.gz \
+-O ${refDir}/mgp.v5.indels.vcf.
+
+# Filter for passing variants with chr added:
+# adjust header
+zcat ${refDir}/mgp.v5.indels.vcf.gz | head -1000 | grep "^#" | cut -f 1-8 \
+| grep -v "#contig" | grep -v "#source" \
+> ${refDir}/mgp.v5.indels.pass.chr.vcf
+
+# keep only passing and adjust chromosome name
+zcat ${refDir}/mgp.v5.indels.vcf.gz | grep -v "^#" | cut -f 1-8 \
+| grep -w "PASS" | sed 's/^\([0-9MXY]\)/chr\1/' \
+>> ${refDir}/mgp.v5.indels.pass.chr.vcf
+
+# Sort VCF (automatically generated index has to be deleted due to a known bug):
+java -Xms16G -Xmx16G -jar $PICARDLIB/picard.jar SortVcf VERBOSITY=WARNING \
+SD=genome.dict \
+I=${refDir}/mgp.v5.indels.pass.chr.vcf \
+O=${refDir}/mgp.v5.indels.pass.chr.sort.vcf
+rm -fv ${refDir}/mgp.v5.indels.pass.chr.sort.vcf.idx
+
+## mm39
+## When using mm39, and the NCBI database is based on mm10,
+## and the MGP website is archived, we will use the datasets from the
+## https://www.mousegenomes.org/ for mm39
+
+## Mouse Genome Project SNPs database
+mpg_snps=${refDir}/mgp_REL2021_snps.vcf.gz
+mod_mpg_snps=${refDir}/mgp_REL2021_snps.chr.vcf
+final_mpg_snps=${refDir}/mgp_REL2021_snps.chr.sorted.vcf
+wget ftp://ftp.ebi.ac.uk/pub/databases/mousegenomes/REL-2112-v8-SNPs_Indels/mgp_REL2021_snps.vcf.gz \
+-O $mpg_snps
+
+# adjust header
+zcat $mpg_snps | head -1000 | grep "^#" | cut -f 1-8 \
+| grep -v "#contig" | grep -v "#source" \
+> $mod_mpg_snps
+
+# keep only passing and adjust chromosome name
+zcat $mpg_snps | grep -v "^#" | cut -f 1-8 \
+| grep -w "PASS" | sed 's/^\([0-9MXY]\)/chr\1/' \
+>> $mod_mpg_snps
+
+# Sort VCF
+java -Xms16G -Xmx16G -jar $PICARDLIB/picard.jar SortVcf \
+SD=${refDir}/mm39.dict \
+I=$mod_mpg_snps \
+O=$final_mpg_snps
+
+rm -vf $mpg_snps $mod_mpg_snps
+
+# Mouse Genome Project INDEL database
+mpg_indels=${refDir}/mgp_REL2021_indels.vcf.gz
+mod_mpg_indels=${refDir}/mgp_REL2021_indels.chr.vcf
+final_mpg_indels=${refDir}/mgp_REL2021_indels.chr.sorted.vcf
+wget ftp://ftp.ebi.ac.uk/pub/databases/mousegenomes/REL-2112-v8-SNPs_Indels/mgp_REL2021_indels.vcf.gz \
+-O $mpg_indels
+# adjust header
+zcat $mpg_indels | head -1000 | grep "^#" | cut -f 1-8 \
+| grep -v "#contig" | grep -v "#source" \
+> $mod_mpg_indels
+# keep only passing and adjust chromosome name
+zcat $mpg_indels | grep -v "^#" | cut -f 1-8 \
+| sed 's/^\([0-9MXY]\)/chr\1/' \
+>> $mod_mpg_indels
+# Sort VCF
+java -Xms16G -Xmx16G -jar $PICARDLIB/picard.jar SortVcf \
+SD=${refDir}/mm39.dict \
+I=$mod_mpg_indels \
+O=$final_mpg_indels
+
+rm -vf $mpg_indels $mod_mpg_indels
+```
+
+### Downloading Mouse exome bed file
+
+WES capture kit bed file is downloaded [here](https://kb.10xgenomics.com/hc/en-us/articles/115004150923-Where-can-I-find-the-Agilent-Target-BED-files-)
+Since the bait file is based on mm9, [liftover tool](https://genome.ucsc.edu/cgi-bin/hgLiftOver) was used to map the coordinates to mm39
+
+```bash
+wget --timestamping \
+    'ftp://hgdownload.soe.ucsc.edu/goldenPath/mm9/liftOver/mm9ToMm39.over.chain.gz' \
+    -O ${refDir}/mm9ToMm39.over.chain.gz
+
+gunzip ${refDir}/mm9ToMm39.over.chain.gz
+
+tail -n +3 ${refDir}/S0276129/S0276129_Regions.bed > ${refDir}/S0276129/S0276129_Regions_no_header.bed
+
+./liftOver \
+${refDir}/S0276129/S0276129_Regions_no_header.bed \
+${refDir}/mm9ToMm39.over.chain \
+${refDir}/S0276129/S0276129_Regions_mm39.bed unMapped
+```
+
+::: {.callout-tip collapse="true" title="Adding 'chr' to BAM file chromosome names"}
+
+Sometimes we need to add 'chr' before the chromosome number in the fastq file
+
+```bash
+samtools view -H <bam_file> > <sam_file_header>
+sed -i 's/\(SN:\)\([^\t]*\)/\1chr\2/' <sam_file_header>
+sed -i 's/chrMT/chrM/g' <sam_file_header>
+samtools reheader <sam_file_header> <bam_file> > <bam_file_w_chr>
+```
+
+To paralleize this workflow on multiple samples using SLURM on an HPC cluster, you can use the following script.
+
+* Input : "bam_manifest.txt" with two columns, the first is sample name and the second is the path for the bam file.
+* Output : BAM files with 'chr' added to chromosome names in the same directory as the original BAM file with the suffix '_w_chr.bam'
+
+| column1 | column2 | 
+|--------|---------------|
+| sample1 | path/to/sample1.bam |
+| sample2 | path/to/sample2.bam |
+| ...    | ...           |
+
+```bash
+#!/bin/bash
+
+#SBATCH --account=
+#SBATCH --job-name='adding_chr_to_bam_file_%a'
+#SBATCH --output=logs/adding_chr_to_bam_file_%a.log
+#SBATCH --partition=standard
+#SBATCH --mem=32G
+#SBATCH --cpus-per-task=8
+#SBATCH --time=12:00:00
+#SBATCH --array=1-<number_of_samples>
+
+ml samtools
+
+samples_manifest=bam_manifest.txt
+sample=$(cat $samples_manifest | cut -f1 | sed -n ${SLURM_ARRAY_TASK_ID}p)
+bam=$(cat $samples_manifest | cut -f2 | sed -n ${SLURM_ARRAY_TASK_ID}p)
+bamDir=$(dirname $bam)
+
+mkdir ${sample}_temp
+samtools view -H $bam > ${sample}_temp/${sample}_header.sam
+sed -i 's/\(SN:\)\([^\t]*\)/\1chr\2/' ${sample}_temp/${sample}_header.sam
+## sed -i 's/chrMT/chrM/g' ${sample}_temp/${sample}_header.sam
+samtools reheader ${sample}_temp/${sample}_header.sam $bam > ${bamDir}/${sample}_w_chr.bam
+rm -r ${sample}_temp
+```
+:::
+
+## Step 4: Reads alignment to Reference Genome {#reads_alignment}
+
+We will use `bwa` to align the fastq files to reference genome and generate BAM files.
+
+```bash
+bwa mem <Ref_Genome> <R1_fastq> <R2_fastq> -t 16 -o <output_sam>
+samtools view -b --threads 16 --verbosity 1 <output_sam> -o <output_bam>
+```
+::: {.callout-note title="SLURM Script"}
+
+To parallelize this workflow on multiple samples using SLURM on an HPC cluster, you can use the following script.
+
+
+* Input : same `R1_R2_fastq_manifest.txt` as above. The first column as sample name, the second column as R1 fastq file path and the third column as R2 fastq file path.
+* Output : BAM files in a directory `outputs/alignment`
+
+| column1 | column2 | column3 |
+|--------|---------------|---------------|
+| sample1 | path/to/sample1_R1.fastq.gz | path/to/sample1_R2.fastq.gz |
+| sample2 | path/to/sample2_R1.fastq.gz | path/to/sample2_R2.fastq.gz |
+| ...    | ...           | ...           |
+
+```bash
+#!/bin/bash
+
+#SBATCH --account=
+#SBATCH --job-name='bwa_%a'
+#SBATCH --output=logs/bwa_%a.log
+
+#SBATCH --partition=standard
+#SBATCH --mem=64G
+#SBATCH --cpus-per-task=8
+#SBATCH --time=24:00:00
+
+#SBATCH --array=1-<number_of_samples>
+
+## Loading Important Modules from Greatlakes HPC
+ml samtools
+ml bwa
+ml gatk
+ml picard-tools
+
+## Setting up variables for files and directories
+samples_manifest=bwa_manifest.txt
+ref=references/mm39.fa
+outputDir=outputs/aligment
+mkdir -p ${outputDir}
+
+## Subsetting a sample
+sample=$(cat $samples_manifest | cut -f1 | sed -n $[SLURM_ARRAY_TASK_ID]p)
+R1=$(cat $samples_manifest | cut -f2 | sed -n $[SLURM_ARRAY_TASK_ID]p)
+R2=$(cat $samples_manifest | cut -f3 | sed -n $[SLURM_ARRAY_TASK_ID]p)
+
+## Logging information
+echo "::> Analyzing Sample $sample" 
+echo -e "::> R1 path $R1"
+echo -e "::> R2 path $R2"
+echo -e "::> Results will be stored in ${outputDir}"
+
+## Alignment using BWA
+echo "::> Aligning sample using BWA <::"
+bwa mem $ref $R1 $R2 -t 16  -o ${outputDir}/${sample}.sam 
+samtools view -b --threads 16 --verbosity 1 ${outputDir}/${sample}.sam -o ${outputDir}/${sample}.bam 
+rm -vf ${outputDir}/${sample}.sam
+```
+:::
+
+## Step 5: Post-Alignment Processing using GATK Best Practices for Variant Calling {#GATK_preprocessing}
+
+After creating the BAM files, we will perform several preprocessing steps recommended by GATK Best Practices for variant calling. This includes adding read groups, sorting, marking duplicates, and base quality score recalibration (BQSR).
+
+* References files used for the variant are downloaded upfront and stored in a parent directory (i.e., outside the project directory to be used later in other projects) called `references`. References include reference genome, VCF files for (panel of normal and gnomAD germline variants and common germline variant), and resources for Funcotator as well
+* Each sample is aligned to hg38 reference genome (using the release recommended by GATK) using **BWA** software creating a `sam` file that is converted to `bam` file afterwards using **samtools**
+* Read groups are added to each bam file using **AddOrReplaceReadGroups**
+* Duplicates are marked using **MarkDuplicatesSpark**
+* Due to certain systematic errors in base quality score, a base quality score recalibration step is necessary. This is done through **BaseRecalibrator**, followed by **ApplyBQSR**.
+
+#### 4.1 Add Read Groups
+```bash
+## Add Read Groups as it is required by some GATK tools. Here we just add sample name as read group
+gatk AddOrReplaceReadGroups -I <bam_file> \
+-O <bam_file_with_RG> \
+-LB <sample_name> \
+-PL Illumina \
+-PU <sample_name> \
+-SM <sample_name> \
+--VERBOSITY ERROR
+```
+
+#### 4.2 Sort BAM files (according to chromosomal coordinates)
+```bash
+samtools sort -O bam -o <sorted_bam_file> <bam_file_with_RG>
+```
+
+#### 4.3 Index BAM files
+We use samtools to index the sorted BAM files, creating `bai` file for quick access to specific regions in the BAM file.
+```bash
+samtools index -b <sorted_bam_file>
+```
+
+#### 4.4 Mark Duplicate Reads
+We use GATK to mark duplicate reads in the BAM files, which helps to reduce bias in variant calling.
+```bash
+gatk MarkDuplicates -I <sorted_bam_file> \
+-O <bam_file_with_marked_duplicates> \
+-M <duplicated_metrics_file.txt> \
+--VERBOSITY ERROR 
+```
+
+#### 4.5 Base Recalibration
+We use GATK Base Recalibrator to perform base quality score recalibration (BQSR) using known variant sites. 
+Known variant sites is downloaded in the [Step 3: Downloading references for alignment](#download_references) section above
+
+```bash
+## for hg38
+known_sites1=data/references/Homo_sapiens_assembly38.dbsnp138.vcf
+known_sites2=data/references/Homo_sapiens_assembly38.known_indels.vcf.gz
+## for mm9
+known_sites1=data/references/mgp_REL2021_indels.chr.sorted.vcf
+known_sites2=data/references/mgp_REL2021_snps.chr.sorted.vcf
+```
+
+We then run GATK `BaseRecalibrator` as follows
+
+```bash
+gatk BaseRecalibrator \
+-I <bam_file_with_marked_duplicates> \
+-R <ref_fastq> \
+--known-sites $known_sites1 \
+--known-sites $known_sites2 \
+-O <DupStat_table> \
+--verbosity ERROR 
+
+gatk ApplyBQSR -R <ref_fastq> \
+-I <bam_file_with_marked_duplicates> \
+--bqsr-recal-file <DupStat_table> \
+-O <BSQR_bam_file> \
+--verbosity ERROR 
+```
+**BSQR_bam_file** output is the final output used for downstream SNV and CNV analysis
+
+#### 4.6 Alignment Quality Control
+
+You can assess the alignment quality as follows
+
+```bash
+# Collect multiple metrics
+gatk CollectMultipleMetrics \
+    -R reference.fa \
+    -I aligned/sample.bqsr.bam \
+    -O metrics/sample \
+    --PROGRAM CollectAlignmentSummaryMetrics \
+    --PROGRAM CollectInsertSizeMetrics \
+    --PROGRAM CollectGcBiasMetrics
+
+# Collect WES-specific metrics
+gatk CollectHsMetrics \
+    -R reference.fa \
+    -I aligned/sample.bqsr.bam \
+    -O metrics/sample.hs_metrics.txt \
+    --BAIT_INTERVALS targets.interval_list \
+    --TARGET_INTERVALS targets.interval_list
+
+# Calculate coverage
+mosdepth -t 4 -b targets.bed metrics/sample aligned/sample.bqsr.bam
+```
+
+### Key Quality Metrics
+
+| Metric | Expected | Concern |
+|--------|----------|---------|
+| Mean target coverage | >80x | <50x |
+| % bases ≥30x | >80% | <60% |
+| % on-target reads | >70% | <50% |
+| Duplicate rate | <20% | >30% |
+| Insert size median | ~150-200 bp | Varies by library |
+
+::: {.callout-note title="SLURM Script"}
+To parallelize this workflow on multiple samples using SLURM on an HPC cluster, you can use the following script.
+
+* Input : `samples_manifest.txt` with one column containing sample names. Reference Genome and known sites used for BSQR are defined in the script.
+* Output : Preprocessed BAM files in a directory `outputs/GATK_preprocessing`
+
+| column1 | column2 | 
+|--------|---------------|
+| sample1 | path/to/sample1.bam |
+| sample2 | path/to/sample2.bam |
+| ...    | ...           |
+
+```bash
+#!/bin/bash
+
+#SBATCH --account=
+#SBATCH --job-name='GATK_prerpocessing_%a'
+#SBATCH --output=logs/GATK_prerpocessing_%a.log
+
+#SBATCH --partition=standard
+#SBATCH --mem=64G
+#SBATCH --cpus-per-task=8
+#SBATCH --time=24:00:00
+
+#SBATCH --array=1-<number_of_samples>
+
+## Loading Important Modules from Greatlakes HPC
+ml samtools
+ml bwa
+ml gatk
+ml picard-tools
+
+## Setting up variables for files and directories
+samples_manifest=outputs/samples_manifest.txt
+ref=data/references/hg38.fa
+known_sites1=data/references/Homo_sapiens_assembly38.dbsnp138.vcf
+known_sites2=data/references/Homo_sapiens_assembly38.known_indels.vcf.gz
+pon=data/references/1000g_pon.hg38.vcf.gz
+# gr_res=data/references/af-only-gnomad.hg38.vcf.gz
+# variants=data/references/small_exac_common_3.hg38.vcf.gz
+
+## For Mouse (mm39)
+# ref=data/references/mm39.fa ## if using mm39
+# known_sites1=data/references/mgp_REL2021_indels.chr.sorted.vcf
+# known_sites2=data/references/mgp_REL2021_snps.chr.sorted.vcf
+
+bamDir=outputs/aligment
+outputDir=outputs/GATK_preprocessing
+
+## Subsetting a sample
+sample=$(cat $samples_manifest | cut -f1 | sed -n $[SLURM_ARRAY_TASK_ID]p)
+
+## GATK Preprocessing
+echo "::> GATK Preprocessing <::"
+gatk AddOrReplaceReadGroups -I ${bamDir}/${sample}.bam \
+-O ${bamDir}/${sample}_RG.bam \
+-LB ${sample} \
+-PL Illumina \
+-PU ${sample} \
+-SM ${sample} \
+--VERBOSITY ERROR
+
+samtools sort -O bam -o ${outputDir}/${sample}_sorted.bam ${outputDir}/${sample}_RG.bam
+rm -vf ${outputDir}/${sample}_RG.bam
+
+samtools index -b ${outputDir}/${sample}_sorted.bam
+
+gatk MarkDuplicates -I ${outputDir}/${sample}_sorted.bam \
+-O ${outputDir}/${sample}_MD.bam \
+-M ${outputDir}/${sample}_MD.txt \
+--VERBOSITY ERROR 
+rm -vf ${outputDir}/${sample}_sorted.bam*
+
+gatk BaseRecalibrator \
+-I ${outputDir}/${sample}_MD.bam \
+-R $ref \
+--known-sites $known_sites1 \
+--known-sites $known_sites2 \
+-O ${outputDir}/${sample}_DupStat.table \
+--verbosity ERROR 
+
+gatk ApplyBQSR -R $ref \
+-I ${outputDir}/${sample}_MD.bam \
+--bqsr-recal-file ${outputDir}/${sample}_DupStat.table \
+-O ${outputDir}/${sample}_BQSR.bam \
+--verbosity ERROR 
+
+rm -vf ${outputDir}/${sample}_MD.*
+rm -vf ${outputDir}/${sample}_DupStat.table
+
+## :::> REVIEW
+# # Collect multiple metrics
+# gatk CollectMultipleMetrics \
+#     -R $ref \
+#     -I ${outputDir}/${sample}_BQSR.bam \
+#     -O ${outputDir}/${sample} \
+#     --PROGRAM CollectAlignmentSummaryMetrics \
+#     --PROGRAM CollectInsertSizeMetrics \
+#     --PROGRAM CollectGcBiasMetrics
+
+# # Collect WES-specific metrics
+# gatk CollectHsMetrics \
+#     -R $ref \
+#     -I ${outputDir}/${sample}_BQSR.bam \
+#     -O ${outputDir}/${sample}.hs_metrics.txt \
+#     --BAIT_INTERVALS targets.interval_list \
+#     --TARGET_INTERVALS targets.interval_list
+
+# # Calculate coverage
+# mosdepth -t 4 -b targets.bed metrics/sample aligned/sample.bqsr.bam
+### :::
+```
+:::
+
+:::{.callout-tip collapse='true' title="Merging BAM files from the same sample"}
+
+Sometimes you will need to merge multiple bam files from the same sample into one file. You can use the following script. You will need the same manifest file used above 'samples_manifest.txt' that has one column of sample names.
+
+```bash
+#!/bin/bash
+
+#SBATCH --account=
+#SBATCH --job-name='merging_bams'
+#SBATCH --output=logs/merging_bams.log
+
+#SBATCH --partition=standard
+#SBATCH --mem=64G
+#SBATCH --cpus-per-task=8
+#SBATCH --time=24:00:00
+
+#SBATCH --array=1-23
+
+## Loading Important Modules from Greatlakes HPC
+ml samtools
+
+## Setting up variables for files and directories
+samples_manifest=outputs/samples_manifest.txt
+sample=$(cat $samples_manifest | cut -f1 | uniq | sed -n $[SLURM_ARRAY_TASK_ID]p) 
+outputDir=outputs/GATK_preprocessing
+mkdir -p ${outputDir}
+
+## Merge bams of different samples
+samtools merge -r -o ${outputDir}/${sample}.bam ${outputDir}/${sample}*
+
+## Removing old files
+rm -vf ${outputDir}/${sample}*_BQSR.bam
+
+samtools index ${outputDir}/${sample}.bam
+```
+:::
+
+## Next Steps
+
+With preprocessed BAM files, proceed to:
+
+- [SNV/Indel Calling](02-Variant-Calling.qmd)
+- [CNV Calling](03-CNV-Calling.qmd)

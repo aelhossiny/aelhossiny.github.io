@@ -1,0 +1,193 @@
+/* Additional custom styles */
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #52adc8;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2f7f93;
+}
+
+/* Animated gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #3498db, #2ecc71, #9b59b6);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 5s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Icon styling */
+.bi {
+  vertical-align: -0.125em;
+}
+
+/* Breadcrumb styling */
+.breadcrumb {
+  background: transparent;
+  padding: 0.5rem 0;
+  margin-bottom: 1rem;
+}
+
+/* Tag cloud for pipelines */
+.tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.tag {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background: #e9ecef;
+  border-radius: 2rem;
+  font-size: 0.85rem;
+  color: #495057;
+  transition: all 0.2s ease;
+}
+
+.tag:hover {
+  background: #3498db;
+  color: white;
+  transform: scale(1.05);
+}
+
+/* Progress indicator for multi-step workflows */
+.progress-steps {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 2rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.progress-step {
+  flex: 1;
+  text-align: center;
+  position: relative;
+}
+
+.progress-step::before {
+  content: '';
+  position: absolute;
+  top: 1.25rem;
+  left: 50%;
+  right: -50%;
+  height: 2px;
+  background: #dee2e6;
+  z-index: 0;
+}
+
+.progress-step:last-child::before {
+  display: none;
+}
+
+.progress-step .step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  background: white;
+  border: 2px solid #dee2e6;
+  border-radius: 50%;
+  font-weight: 600;
+  position: relative;
+  z-index: 1;
+}
+
+.progress-step.active .step-number {
+  background: #3498db;
+  border-color: #3498db;
+  color: white;
+}
+
+.progress-step.completed .step-number {
+  background: #27ae60;
+  border-color: #27ae60;
+  color: white;
+}
+
+/* Tooltip styling */
+.tooltip-custom {
+  position: relative;
+  cursor: help;
+}
+
+.tooltip-custom::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.5rem 1rem;
+  background: #2c3e50;
+  color: white;
+  border-radius: 0.25rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+}
+
+.tooltip-custom:hover::after {
+  opacity: 1;
+  visibility: visible;
+  bottom: calc(100% + 0.5rem);
+}
+
+/* Copy button for code blocks */
+.code-copy-button {
+  transition: all 0.2s ease;
+}
+
+.code-copy-button:hover {
+  transform: scale(1.1);
+}
+
+/* Mermaid diagram improvements */
+.mermaid {
+  text-align: center;
+  margin: 2rem 0;
+}
+
+/* Print styles */
+@media print {
+  .navbar, .sidebar, .page-footer {
+    display: none !important;
+  }
+  
+  .hero-section {
+    background: #f8f9fa !important;
+    color: #2c3e50 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

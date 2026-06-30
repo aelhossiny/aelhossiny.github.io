@@ -1,0 +1,12 @@
+{
+  "hash": "fae2688b2abe00039e5050fd14c0e2bd",
+  "result": {
+    "engine": "jupyter",
+    "markdown": "---\ntitle: \"Xenium Resegmentation\"\nauthor: \n    name: \"Ahmed M. Elhossiny\"\n    email: \"hossiny@umich.edu\"\nformat: \n    html:\n        toc: true\n        toc-depth: 3\n        code-fold: show\neditor: source\nexecute:\n    eval: false\n---\n\nHere we will use Proseg (@proseg) for segmentation. The following script sets up a SLURM job for running Proseg on the Xenium data, then the data is converted to Bayesor format to be imported to the xenium.experiment file for viewing. \n\n```{bash}\n#!/bin/bash\n\n#SBATCH --account=\n#SBATCH --job-name='proseg_%a'\n#SBATCH --output=logs/proseg_%a.log\n#SBATCH --partition=standard\n#SBATCH --mem=128G\n#SBATCH --cpus-per-task=16\n#SBATCH --time=24:00:00\n#SBATCH --array=2-4\n\nmkdir -p logs\nml xeniumranger\n\n# Setting up variables\nsamples_manifest=data/samples_manifest.txt\nsample=$(cat $samples_manifest | cut -f1 | sed -n ${SLURM_ARRAY_TASK_ID}p)\nxenium_outDir=$(cat $samples_manifest | cut -f2 | sed -n ${SLURM_ARRAY_TASK_ID}p)\n\nproseg ${xenium_outDir}/transcripts.parquet --xenium --output-path ${xenium_outDir}\n\nproseg-to-baysor \\\n    ${xenium_outDir}/transcript-metadata.csv.gz \\\n    ${xenium_outDir}/cell-polygons.geojson.gz \\\n    --output-transcript-metadata ${xenium_outDir}/baysor-transcript-metadata.csv \\\n    --output-cell-polygons ${xenium_outDir}/baysor-cell-polygons.geojson\n\nxeniumranger import-segmentation \\\n    --id ${sample} \\\n    --xenium-bundle ${xenium_outDir} \\\n    --viz-polygons ${xenium_outDir}/baysor-cell-polygons.geojson \\\n    --transcript-assignment ${xenium_outDir}/baysor-transcript-metadata.csv \\\n    --units microns\n```\n\n",
+    "supporting": [
+      "01-st_xenium_segmentation_files"
+    ],
+    "filters": [],
+    "includes": {}
+  }
+}

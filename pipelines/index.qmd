@@ -1,0 +1,54 @@
+---
+title: "Code & Workflows"
+subtitle: "Computational biology pipelines for genomics and transcriptomics"
+page-layout: article
+toc: false
+sidebar: false
+number-sections: false
+---
+
+While AI can now generate bioinformatics pipelines and code in seconds, the frameworks shared here are battle-tested tools I've developed over years of work with real-world datasets. They've been instrumental in producing findings published in high-impact journals. This collection serves as both a reference for reproducible workflows and a living documentation of analyses that have worked for me. Below, you'll find sections organized by dataset type, with additional resources for various analytical tasks. Some code has been generated or refined with AI assistance.
+
+<div class="pipeline-landing-grid">
+
+<div class="pipeline-landing-card">
+<div class="plc-icon"><i class="bi bi-bar-chart-steps"></i></div>
+
+### Bulk RNA-seq
+
+From raw FASTQ reads through alignment, quantification, differential expression, and pathway analysis.
+
+[View Pipeline →](./bulk-rnaseq/index.qmd){.plc-link}
+</div>
+
+<div class="pipeline-landing-card">
+<div class="plc-icon"><i class="bi bi-grid-3x3-gap-fill"></i></div>
+
+### Single-cell RNA-seq
+
+Cell Ranger preprocessing, ambient RNA removal, clustering, cell type annotation, and CNV inference.
+
+[View Pipeline →](./scrnaseq/index.qmd){.plc-link}
+</div>
+
+<div class="pipeline-landing-card">
+<div class="plc-icon"><i class="bi bi-map-fill"></i></div>
+
+### Spatial Transcriptomics
+
+Spatially-resolved gene expression for Visium and Xenium platforms — deconvolution, clustering, and neighborhood analysis.
+
+[View Pipeline →](./spatial/index.qmd){.plc-link}
+</div>
+
+<div class="pipeline-landing-card">
+<div class="plc-icon"><i class="bi bi-crosshair2"></i></div>
+
+### Whole Exome Sequencing
+
+Data preprocessing, somatic variant calling, and copy number variation analysis from tumor–normal pairs.
+
+[View Pipeline →](./wes/index.qmd){.plc-link}
+</div>
+
+</div>

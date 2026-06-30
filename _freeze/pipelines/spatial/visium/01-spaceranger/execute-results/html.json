@@ -1,0 +1,12 @@
+{
+  "hash": "023e1e85ad49562aec35f51922bf4020",
+  "result": {
+    "engine": "jupyter",
+    "markdown": "---\ntitle: \"Space Ranger Processing\"\nsubtitle: \"Processing Visium spatial transcriptomics data\"\nsidebar: spatial\n---\n\n## Overview\n\nSpace Ranger is the 10x Genomics pipeline for processing Visium Spatial Gene Expression data. It performs alignment, tissue detection, fiducial alignment, and barcode/UMI counting.\n\n## Download Reference\n\n```{bash}\n#| eval: false\n#| code-fold: false\n\n# Human reference\ncurl -O https://cf.10xgenomics.com/supp/spatial-exp/refdata-gex-GRCh38-2024-A.tar.gz\ntar -xzf refdata-gex-GRCh38-2024-A.tar.gz\n\n# Mouse reference\ncurl -O https://cf.10xgenomics.com/supp/spatial-exp/refdata-gex-GRCm39-2024-A.tar.gz\n```\n\n## Run Space Ranger Count\n\n```{bash}\n#| eval: false\n#| code-fold: false\n\nspaceranger count \\\n    --id=sample_1 \\\n    --transcriptome=/path/to/refdata-gex-GRCh38-2024-A \\\n    --fastqs=/path/to/fastqs \\\n    --sample=Sample1 \\\n    --image=/path/to/image.tif \\\n    --slide=V19J01-001 \\\n    --area=A1 \\\n    --localcores=16 \\\n    --localmem=64\n```\n\n### Parameters\n\n| Parameter | Description |\n|-----------|-------------|\n| `--image` | High-resolution tissue image (TIFF or JPEG) |\n| `--slide` | Slide serial number |\n| `--area` | Capture area (A1, B1, C1, D1) |\n| `--cytaimage` | (Optional) CytAssist image for enhanced alignment |\n\n## Output Structure\n\n```\nsample_1/\n├── outs/\n│   ├── filtered_feature_bc_matrix/\n│   ├── raw_feature_bc_matrix/\n│   ├── spatial/\n│   │   ├── aligned_fiducials.jpg\n│   │   ├── detected_tissue_image.jpg\n│   │   ├── scalefactors_json.json\n│   │   ├── tissue_hires_image.png\n│   │   ├── tissue_lowres_image.png\n│   │   └── tissue_positions.csv\n│   ├── web_summary.html\n│   └── cloupe.cloupe\n```\n\n## Quality Metrics\n\nKey metrics from `web_summary.html`:\n\n| Metric | Expected | Concern |\n|--------|----------|---------|\n| Spots under tissue | 1,000-5,000 | <500 |\n| Mean reads/spot | >25,000 | <10,000 |\n| Median genes/spot | >2,000 | <500 |\n| Sequencing saturation | >50% | <30% |\n\n::: {.callout-warning}\n## Image Alignment Issues\n\nIf tissue detection is poor:\n- Ensure image is properly oriented\n- Check slide serial number and area\n- Try manual alignment in Loupe Browser\n:::\n\n## Next Steps\n\nWith Space Ranger complete, proceed to [Visium Analysis](02-analysis.qmd) in R/Python.\n\n",
+    "supporting": [
+      "01-spaceranger_files"
+    ],
+    "filters": [],
+    "includes": {}
+  }
+}

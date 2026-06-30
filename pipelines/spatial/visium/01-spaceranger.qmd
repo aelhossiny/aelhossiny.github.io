@@ -1,0 +1,92 @@
+---
+title: "Space Ranger Processing"
+subtitle: "Processing Visium spatial transcriptomics data"
+sidebar: spatial
+---
+
+## Overview
+
+Space Ranger is the 10x Genomics pipeline for processing Visium Spatial Gene Expression data. It performs alignment, tissue detection, fiducial alignment, and barcode/UMI counting.
+
+## Download Reference
+
+```{bash}
+#| eval: false
+#| code-fold: false
+
+# Human reference
+curl -O https://cf.10xgenomics.com/supp/spatial-exp/refdata-gex-GRCh38-2024-A.tar.gz
+tar -xzf refdata-gex-GRCh38-2024-A.tar.gz
+
+# Mouse reference
+curl -O https://cf.10xgenomics.com/supp/spatial-exp/refdata-gex-GRCm39-2024-A.tar.gz
+```
+
+## Run Space Ranger Count
+
+```{bash}
+#| eval: false
+#| code-fold: false
+
+spaceranger count \
+    --id=sample_1 \
+    --transcriptome=/path/to/refdata-gex-GRCh38-2024-A \
+    --fastqs=/path/to/fastqs \
+    --sample=Sample1 \
+    --image=/path/to/image.tif \
+    --slide=V19J01-001 \
+    --area=A1 \
+    --localcores=16 \
+    --localmem=64
+```
+
+### Parameters
+
+| Parameter | Description |
+|-----------|-------------|
+| `--image` | High-resolution tissue image (TIFF or JPEG) |
+| `--slide` | Slide serial number |
+| `--area` | Capture area (A1, B1, C1, D1) |
+| `--cytaimage` | (Optional) CytAssist image for enhanced alignment |
+
+## Output Structure
+
+```
+sample_1/
+├── outs/
+│   ├── filtered_feature_bc_matrix/
+│   ├── raw_feature_bc_matrix/
+│   ├── spatial/
+│   │   ├── aligned_fiducials.jpg
+│   │   ├── detected_tissue_image.jpg
+│   │   ├── scalefactors_json.json
+│   │   ├── tissue_hires_image.png
+│   │   ├── tissue_lowres_image.png
+│   │   └── tissue_positions.csv
+│   ├── web_summary.html
+│   └── cloupe.cloupe
+```
+
+## Quality Metrics
+
+Key metrics from `web_summary.html`:
+
+| Metric | Expected | Concern |
+|--------|----------|---------|
+| Spots under tissue | 1,000-5,000 | <500 |
+| Mean reads/spot | >25,000 | <10,000 |
+| Median genes/spot | >2,000 | <500 |
+| Sequencing saturation | >50% | <30% |
+
+::: {.callout-warning}
+## Image Alignment Issues
+
+If tissue detection is poor:
+- Ensure image is properly oriented
+- Check slide serial number and area
+- Try manual alignment in Loupe Browser
+:::
+
+## Next Steps
+
+With Space Ranger complete, proceed to [Visium Analysis](02-analysis.qmd) in R/Python.

@@ -1,0 +1,15 @@
+{
+  "hash": "b5a8f31ddc4515873e80a41ca268213e",
+  "result": {
+    "engine": "knitr",
+    "markdown": "---\ntitle: \"Spatial Transcriptomics Data Processing\"\nauthor: \n    name: \"Ahmed M. Elhossiny\"\n    email: \"hossiny@umich.edu\"\nformat: \n    html:\n        toc: true\n        toc-depth: 3\n        code-fold: show\neditor: source\nexecute:\n    eval: false\n---\n\n## 1 Setup & Data Loading\n\nHere we load essential packages and `visium_samples_manifest.xlsx` from the data directory, that includes information and metadata about visium samples. We use Seurat v5 [@seurat] as data container for processing and visualization.\n\n\n::: {.cell}\n\n```{.r .cell-code}\nsuppressPackageStartupMessages({\n  library(Seurat)\n  library(tidyverse)\n  library(parallel)\n  library(scCustomize)\n  library(SPATA2)\n  library(qs)\n  library(CellChat)\n})\n\n# loading manifest ------------------------------------------------------------\n\nvisium_samples <- readxl::read_xlsx(\"../data/visium_samples_manifest.xlsx\")\n\n# processing data ------------------------------------------------------------\n\noutputDir <- \"outputs/Preprocessing/spatial_seurat_objects/\"\ndir.create(outputDir, showWarnings = F, recursive = T)\n```\n:::\n\n\n## 2 Seurat Object Preparation\n\nHere we generate spatial Seurat objects for each patient sample, and save them separately. They will be merged later in [Clustering Analysis](st_clustering.qmd) with deconvolution and clustering results\n\n\n::: {.cell}\n\n```{.r .cell-code}\nlapply(visium_samples$patient_id, function(x){\n  message(x)\n  path <- visium_samples %>% filter(patient_id == x) %>% pull(cellranger_3.0.1_output_path)\n  seurat_obj <- Load10X_Spatial(path)\n  seurat_obj <- NormalizeData(seurat_obj)\n  seurat_obj <- ScaleData(seurat_obj)\n  saveRDS(seurat_obj, paste0(outputDir, x,\".rds\"))\n})\n```\n:::\n",
+    "supporting": [],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}

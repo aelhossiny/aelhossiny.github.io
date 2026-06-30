@@ -1,0 +1,141 @@
+---
+title: "Preprocessing & Quality Control"
+subtitle: "Step 1: Assessing read quality and adapter trimming"
+sidebar: bulk-rnaseq
+---
+
+## Overview
+
+Quality control is the critical first step in any RNA-seq analysis. Poor quality data can lead to unreliable downstream results. This step involves:
+
+1. **Quality assessment** of raw reads
+2. **Adapter trimming** and quality filtering
+3. **Post-trimming QC** to verify improvement
+
+## Quality Assessment with FastQC
+
+FastQC provides a comprehensive overview of various quality metrics for each sample.
+
+```{bash}
+#| eval: false
+#| code-fold: false
+
+# Run FastQC on all FASTQ files
+fastqc -t 8 -o fastqc_results/ raw_data/*.fastq.gz
+
+# Aggregate results with MultiQC
+multiqc fastqc_results/ -o multiqc_report/
+```
+
+### Key Metrics to Evaluate
+
+::: {.callout-note}
+## Quality Indicators
+
+- **Per base sequence quality**: Should be >28 across most positions
+- **Per sequence quality scores**: Peak should be >30
+- **Adapter content**: Should be minimal (<5%)
+- **Overrepresented sequences**: Check for contaminants
+:::
+
+## Adapter Trimming with fastp
+
+fastp is a fast all-in-one preprocessing tool that performs quality filtering, adapter trimming, and quality control.
+
+```{bash}
+#| eval: false
+#| code-fold: false
+
+#!/bin/bash
+# Adapter trimming with fastp
+
+THREADS=8
+INPUT_DIR="raw_data"
+OUTPUT_DIR="trimmed_data"
+
+mkdir -p ${OUTPUT_DIR}
+
+for R1 in ${INPUT_DIR}/*_R1.fastq.gz; do
+    SAMPLE=$(basename ${R1} _R1.fastq.gz)
+    R2=${INPUT_DIR}/${SAMPLE}_R2.fastq.gz
+    
+    fastp \
+        --in1 ${R1} \
+        --in2 ${R2} \
+        --out1 ${OUTPUT_DIR}/${SAMPLE}_R1_trimmed.fastq.gz \
+        --out2 ${OUTPUT_DIR}/${SAMPLE}_R2_trimmed.fastq.gz \
+        --html ${OUTPUT_DIR}/${SAMPLE}_fastp.html \
+        --json ${OUTPUT_DIR}/${SAMPLE}_fastp.json \
+        --thread ${THREADS} \
+        --qualified_quality_phred 20 \
+        --length_required 36 \
+        --detect_adapter_for_pe \
+        --correction
+        
+    echo "Finished processing: ${SAMPLE}"
+done
+```
+
+### fastp Parameters Explained
+
+| Parameter | Description | Recommended Value |
+|-----------|-------------|-------------------|
+| `--qualified_quality_phred` | Minimum base quality | 20 |
+| `--length_required` | Minimum read length after trimming | 36 |
+| `--detect_adapter_for_pe` | Auto-detect adapters for PE reads | Enable |
+| `--correction` | Enable base correction for PE overlap | Enable |
+
+## Alternative: Trimmomatic
+
+```{bash}
+#| eval: false
+#| code-fold: false
+
+# Trimmomatic example
+java -jar trimmomatic-0.39.jar PE \
+    -threads 8 \
+    input_R1.fastq.gz input_R2.fastq.gz \
+    output_R1_paired.fastq.gz output_R1_unpaired.fastq.gz \
+    output_R2_paired.fastq.gz output_R2_unpaired.fastq.gz \
+    ILLUMINACLIP:adapters.fa:2:30:10:2:keepBothReads \
+    LEADING:3 \
+    TRAILING:3 \
+    SLIDINGWINDOW:4:15 \
+    MINLEN:36
+```
+
+## Post-Trimming QC
+
+After trimming, run FastQC again to verify quality improvement:
+
+```{bash}
+#| eval: false
+
+# Post-trimming QC
+fastqc -t 8 -o fastqc_trimmed/ trimmed_data/*.fastq.gz
+multiqc fastqc_trimmed/ fastp_reports/ -o multiqc_final/
+```
+
+::: {.callout-tip}
+## Best Practice
+
+Always compare pre- and post-trimming metrics. You should see:
+
+- Improved per-base quality scores
+- Reduced adapter content
+- Slight reduction in total reads (filtered low-quality reads)
+:::
+
+## Troubleshooting
+
+::: {.callout-warning}
+## Common Issues
+
+1. **High adapter content**: Check if correct adapter sequences are being used
+2. **Low quality at 3' end**: Normal for Illumina; trimming should resolve this
+3. **Overrepresented sequences**: May indicate contamination or rRNA
+:::
+
+## Next Steps
+
+Once QC is complete and reads are trimmed, proceed to [Read Alignment](02-alignment.qmd).

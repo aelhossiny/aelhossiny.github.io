@@ -1,0 +1,1573 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.38">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Ahmed M. Elhossiny">
+
+<title>WES Preprocessing – Ahmed Elhossiny</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-af010de4e93bcc3bba4b1c1d40d2456e.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-20f4e7f6792b9c891757c6c77da7ca36.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<style>html{ scroll-behavior: smooth; }</style>
+
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-sidebar floating nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a href="../../index.html" class="navbar-brand navbar-brand-logo">
+    <img src="../../images/dna-logo.svg" alt="" class="navbar-logo light-content">
+    <img src="../../images/dna-logo.svg" alt="" class="navbar-logo dark-content">
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../index.html"> 
+<span class="menu-text">About Me</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../pipelines/index.html"> 
+<span class="menu-text">Code/Workflows</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../articles/index.html"> 
+<span class="menu-text">Articles</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../pipelines/wes/01-Data-Preprocessing.html">WES Preprocessing</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../pipelines/wes/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">WES Analysis Overview</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../pipelines/wes/01-Data-Preprocessing.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">WES Preprocessing</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../pipelines/wes/02-Variant-Calling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Variant Calling</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../pipelines/wes/03-CNV-Calling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">CNV Calling</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#analysis-steps" id="toc-analysis-steps" class="nav-link" data-scroll-target="#analysis-steps">Analysis Steps</a></li>
+  <li><a href="#quality_control" id="toc-quality_control" class="nav-link" data-scroll-target="#quality_control">Step 1: Quality Control of Raw Reads</a></li>
+  <li><a href="#trimming_adapters" id="toc-trimming_adapters" class="nav-link" data-scroll-target="#trimming_adapters">Step 2: Trimming Adapters and Low-Quality Bases</a></li>
+  <li><a href="#download_references" id="toc-download_references" class="nav-link" data-scroll-target="#download_references">Step 3: Downloading references for alignment</a>
+  <ul class="collapse">
+  <li><a href="#human-hg38" id="toc-human-hg38" class="nav-link" data-scroll-target="#human-hg38">Human (hg38)</a>
+  <ul class="collapse">
+  <li><a href="#loading-necessary-modules-and-creating-reference-directory" id="toc-loading-necessary-modules-and-creating-reference-directory" class="nav-link" data-scroll-target="#loading-necessary-modules-and-creating-reference-directory">Loading necessary modules and creating reference directory</a></li>
+  <li><a href="#downloading-reference-genome" id="toc-downloading-reference-genome" class="nav-link" data-scroll-target="#downloading-reference-genome">Downloading Reference Genome</a></li>
+  <li><a href="#downloading-ref-flat-for-gene-annotations" id="toc-downloading-ref-flat-for-gene-annotations" class="nav-link" data-scroll-target="#downloading-ref-flat-for-gene-annotations">Downloading Ref Flat for gene annotations</a></li>
+  <li><a href="#downloading-1000-genomes-panel-of-normals-gnomad-allele-frequency-database-exac-variants-database." id="toc-downloading-1000-genomes-panel-of-normals-gnomad-allele-frequency-database-exac-variants-database." class="nav-link" data-scroll-target="#downloading-1000-genomes-panel-of-normals-gnomad-allele-frequency-database-exac-variants-database.">Downloading 1000-Genomes Panel of Normals, gnomAD allele-frequency database &amp; ExAC variants database.</a></li>
+  <li><a href="#downloading-human-exome-bed-file" id="toc-downloading-human-exome-bed-file" class="nav-link" data-scroll-target="#downloading-human-exome-bed-file">Downloading Human exome bed file</a></li>
+  </ul></li>
+  <li><a href="#mouse-mm39" id="toc-mouse-mm39" class="nav-link" data-scroll-target="#mouse-mm39">Mouse (mm39)</a>
+  <ul class="collapse">
+  <li><a href="#loading-necessary-modules-and-creating-reference-directory-1" id="toc-loading-necessary-modules-and-creating-reference-directory-1" class="nav-link" data-scroll-target="#loading-necessary-modules-and-creating-reference-directory-1">Loading necessary modules and creating reference directory</a></li>
+  <li><a href="#downloading-reference-genome-1" id="toc-downloading-reference-genome-1" class="nav-link" data-scroll-target="#downloading-reference-genome-1">Downloading Reference Genome</a></li>
+  <li><a href="#downloading-ref-flat-for-gene-annotations-1" id="toc-downloading-ref-flat-for-gene-annotations-1" class="nav-link" data-scroll-target="#downloading-ref-flat-for-gene-annotations-1">Downloading Ref Flat for gene annotations</a></li>
+  <li><a href="#downloading-known-sites-for-bqsr-processing" id="toc-downloading-known-sites-for-bqsr-processing" class="nav-link" data-scroll-target="#downloading-known-sites-for-bqsr-processing">Downloading Known sites for BQSR processing</a></li>
+  <li><a href="#downloading-mouse-exome-bed-file" id="toc-downloading-mouse-exome-bed-file" class="nav-link" data-scroll-target="#downloading-mouse-exome-bed-file">Downloading Mouse exome bed file</a></li>
+  </ul></li>
+  <li><a href="#reads_alignment" id="toc-reads_alignment" class="nav-link" data-scroll-target="#reads_alignment">Step 4: Reads alignment to Reference Genome</a></li>
+  <li><a href="#GATK_preprocessing" id="toc-GATK_preprocessing" class="nav-link" data-scroll-target="#GATK_preprocessing">Step 5: Post-Alignment Processing using GATK Best Practices for Variant Calling</a>
+  <ul class="collapse">
+  <li><a href="#key-quality-metrics" id="toc-key-quality-metrics" class="nav-link" data-scroll-target="#key-quality-metrics">Key Quality Metrics</a></li>
+  </ul></li>
+  <li><a href="#next-steps" id="toc-next-steps" class="nav-link" data-scroll-target="#next-steps">Next Steps</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">WES Preprocessing</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Ahmed M. Elhossiny <a href="mailto:hossiny@umich.edu" class="quarto-title-author-email"><i class="bi bi-envelope"></i></a> </p>
+          </div>
+  </div>
+    
+  
+    <div>
+    <div class="quarto-title-meta-heading">Modified</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date-modified">January 19, 2026</p>
+    </div>
+  </div>
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level1">
+<h1>Introduction</h1>
+<p>In this page, we will wake through the processing of WES raw fastq files to processed BAM files ready for either variant calling or CNV analysis. This includes quality control, trimming, and alignment of raw sequencing reads to a reference genome. Genomics/Sequencing core in different institutes usually provided raw sequencing files as well as processed BAM files based on a standard pipeline, if that is the case, one can skip this step and move directly to variant calling or CNV analysis. However, if you have multiple samples from different runs or different resources it is recommended to process all samples using the same pipeline to avoid batch effects.</p>
+</section>
+<section id="analysis-steps" class="level1">
+<h1>Analysis Steps</h1>
+<p>The analysis steps include the following:</p>
+<ol type="1">
+<li><a href="#quality_control">Quality Control of Raw Reads</a></li>
+<li><a href="#trimming_adapters">Trimming Adapters and Low-Quality Bases</a></li>
+<li><a href="#download_references">Downloading references for alignment and variant calling</a></li>
+<li><a href="#reads_alignment">Reads alignment to Reference Genome</a></li>
+<li><a href="#GATK_preprocessing">Post-Alignment Processing using GATK Best Practices for Variant Calling</a></li>
+</ol>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li><p>Most of the mentioned softwares were previously installed on the HPC clusters which were used to run this analysis pipeline. If you are using a different HPC cluster or local machine, you may need to install these softwares first.</p></li>
+<li><p>Most of the times fastq files come as paired-end, where each sample will have two fastq files (R1 &amp; R2), where each read is sequencing from both ends. You can read more about paired-end sequencing <a href="https://www.illumina.com/science/technology/next-generation-sequencing/plan-experiments/paired-end-vs-single-read.html">here</a>.</p></li>
+<li><p>As indicated before, throughout the pipeline, I will show how to apply different methods on a single sample, and also show to apply them on multiple samples using SLURM scripts on HPC cluster</p></li>
+</ul>
+</div>
+</div>
+</section>
+<section id="quality_control" class="level1">
+<h1>Step 1: Quality Control of Raw Reads</h1>
+<p>Before starting the analysis, it is important to assess the quality of the raw sequencing reads. This can be done using FastQC and MultiQC, which provides a comprehensive report on various quality metrics.</p>
+<p>Running FastQC</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">fastqc</span> <span class="at">-o</span> . <span class="at">-f</span> fastq <span class="at">-t</span> 32 <span class="op">&lt;</span>FASTQ FILE<span class="er">(</span><span class="ex">S</span><span class="kw">)</span><span class="op">&gt;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Notes about reading QC reports can be found <a href="https://hbctraining.github.io/Intro-to-rnaseq-hpc-salmon/lessons/qc_fastqc_assessment.html">here</a>. One of the most notable thing is adapter trimming.</p>
+<div class="callout callout-style-default callout-note callout-titled" title="SLURM Script">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>SLURM Script
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>To parallelize this workflow on multiple samples using SLURM on an HPC cluster, you can use the following script.</p>
+<ul>
+<li>Input :<code>fastq_manifest.txt</code> with two columns, the first one has sample name and the second one has directory containing for the fastq files for the sample.</li>
+<li>Output : HTML QC reports in a directory <code>outputs/QC</code></li>
+</ul>
+<p>Example</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>column1</th>
+<th>column2</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>sample1</td>
+<td>path/to/sample1_R1.fastq.gz</td>
+</tr>
+<tr class="even">
+<td>sample1</td>
+<td>path/to/sample2_R2.fastq.gz</td>
+</tr>
+<tr class="odd">
+<td>…</td>
+<td>…</td>
+</tr>
+</tbody>
+</table>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/bash</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --account=</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --job-name='samples_QC_%a'</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --output=logs/samples_QC_%a.log</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --partition=standard</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --mem=16G</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --cpus-per-task=8</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --time=08:00:00</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --array=1-&lt;number_of_samples&gt;</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="ex">ml</span> fastqc</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> <span class="at">-p</span> outputs/QC</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="va">fastq_manifest</span><span class="op">=</span>outputs/fastq_manifest.txt</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="va">current_fastqs</span><span class="op">=</span><span class="va">$(</span><span class="fu">cat</span> <span class="va">$fastq_manifest</span> <span class="kw">|</span> <span class="fu">cut</span> <span class="at">-f2</span> <span class="kw">|</span> <span class="fu">sed</span> <span class="at">-n</span> $<span class="pp">[</span><span class="ss">SLURM_ARRAY_TASK_ID</span><span class="pp">]</span>p<span class="va">)</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="co">## fastqs=$(find $current_fastqs -mindepth 1 -name '*.fq.gz' | tr '\n' ' ') ## If the files end with .fq extension</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="va">fastqs</span><span class="op">=</span><span class="va">$(</span><span class="fu">find</span> <span class="va">$current_fastqs</span> <span class="at">-mindepth</span> 1 <span class="at">-name</span> <span class="st">'*.fq.gz'</span> <span class="kw">|</span> <span class="fu">tr</span> <span class="st">'\n'</span> <span class="st">' '</span><span class="va">)</span> <span class="co">## If the files end with .fq.gz extension</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">':: Runnign FASTQC'</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a><span class="ex">fastqc</span> <span class="at">-o</span> outputs/QC <span class="dt">\</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>-f fastq <span class="dt">\</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>-t 32 <span class="dt">\</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a><span class="va">$fastqs</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Running MultiQC to aggregate FastQC reports.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/bash</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">':: Running MultiQC'</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ex">multiqc</span> outputs/QC <span class="at">-o</span> outputs/QC</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Notes about reading MultiQC reports can be found <a href="https://docs.seqera.io/multiqc/reports">here</a>.</p>
+</div>
+</div>
+</section>
+<section id="trimming_adapters" class="level1">
+<h1>Step 2: Trimming Adapters and Low-Quality Bases</h1>
+<p>Often times, sequencing reads contain adapter sequences and low-quality bases that can interfere with downstream analysis. To address this, we will use Cutadapt to trim adapters and low-quality bases from the reads. You have to define the adapter sequences based on the library preparation kit used for sequencing. Here, we will use the Illumina TruSeq adapter sequences as an example. You can read more <a href="https://cutadapt.readthedocs.io/en/stable/guide.html#illumina-truseq">here</a></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">cutadapt</span> <span class="dt">\</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">-a</span> AGATCGGAAGAGCACACGTCTGAACTCCAGTCA <span class="dt">\</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">-A</span> AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT <span class="dt">\</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">-o</span> <span class="op">&lt;</span>R1_Output<span class="op">&gt;</span> -p <span class="op">&lt;</span>R2_Output<span class="op">&gt;</span> <span class="dt">\</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">&lt;</span>R1_fastq<span class="op">&gt;</span> <span class="op">&lt;</span>R2_fastq<span class="op">&gt;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="callout callout-style-default callout-note callout-titled" title="SLURM Script">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>SLURM Script
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>To parallelize this workflow on multiple samples using SLURM on an HPC cluster, you can use the following script.</p>
+<ul>
+<li>Input : <code>R1_R2_fastq_manifest.txt</code> with three columns, the first one has sample name and the second one has path for R1 fastq file and the third column contains the path for R2 fastq file.</li>
+<li>Output : trimmed fastq files in a directory <code>outputs/trimmed_fastq</code></li>
+</ul>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>column1</th>
+<th>column2</th>
+<th>column3</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>sample1</td>
+<td>path/to/sample1_R1.fastq.gz</td>
+<td>path/to/sample1_R2.fastq.gz</td>
+</tr>
+<tr class="even">
+<td>sample2</td>
+<td>path/to/sample2_R1.fastq.gz</td>
+<td>path/to/sample2_R2.fastq.gz</td>
+</tr>
+<tr class="odd">
+<td>…</td>
+<td>…</td>
+<td>…</td>
+</tr>
+</tbody>
+</table>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/bash</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --account=</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --job-name='adaptor_trimming_%a'</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --output=logs/adaptor_trimming_%a.log</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --partition=standard</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --mem=180G</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --cpus-per-task=32</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --time=48:00:00</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --array=1-&lt;number_of_samples&gt;</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="co">## Loading Important Modules from Greatlakes HPC</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="ex">ml</span> cutadapt</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> <span class="at">-p</span> outputs/trimmed_fastq</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a><span class="va">outputDir</span><span class="op">=</span>outputs/trimmed_fastq</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a><span class="co">## Setting up variables for files and directories</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a><span class="va">samples_manifest</span><span class="op">=</span>R1_R2_fastq_manifest.txt</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a><span class="co">## Subsetting a sample</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a><span class="va">sample</span><span class="op">=</span><span class="va">$(</span><span class="fu">cat</span> <span class="va">$samples_manifest</span> <span class="kw">|</span> <span class="fu">cut</span> <span class="at">-f1</span> <span class="kw">|</span> <span class="fu">sed</span> <span class="at">-n</span> $<span class="pp">[</span><span class="ss">SLURM_ARRAY_TASK_ID</span><span class="pp">]</span>p<span class="va">)</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a><span class="va">R1</span><span class="op">=</span><span class="va">$(</span><span class="fu">cat</span> <span class="va">$samples_manifest</span> <span class="kw">|</span> <span class="fu">cut</span> <span class="at">-f2</span> <span class="kw">|</span> <span class="fu">sed</span> <span class="at">-n</span> $<span class="pp">[</span><span class="ss">SLURM_ARRAY_TASK_ID</span><span class="pp">]</span>p<span class="va">)</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a><span class="va">R2</span><span class="op">=</span><span class="va">$(</span><span class="fu">cat</span> <span class="va">$samples_manifest</span> <span class="kw">|</span> <span class="fu">cut</span> <span class="at">-f3</span> <span class="kw">|</span> <span class="fu">sed</span> <span class="at">-n</span> $<span class="pp">[</span><span class="ss">SLURM_ARRAY_TASK_ID</span><span class="pp">]</span>p<span class="va">)</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a><span class="va">R1_output</span><span class="op">=</span><span class="va">${outputDir}</span>/trimmed_<span class="va">$(</span><span class="fu">basename</span> <span class="va">$R1)</span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a><span class="va">R2_output</span><span class="op">=</span><span class="va">${outputDir}</span>/trimmed_<span class="va">$(</span><span class="fu">basename</span> <span class="va">$R2)</span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a><span class="co">## Logging information</span></span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">"::&gt; Analyzing Sample </span><span class="va">$sample</span><span class="st">"</span> </span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="at">-e</span> <span class="st">"::&gt; R1 path </span><span class="va">$R1</span><span class="st">"</span></span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="at">-e</span> <span class="st">"::&gt; R2 path </span><span class="va">$R2</span><span class="st">"</span></span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="at">-e</span> <span class="st">"::&gt; Results will be stored in the same directory of the original files"</span></span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">"::&gt; Running cutadapt &lt;::"</span></span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a><span class="ex">cutadapt</span> <span class="dt">\</span></span>
+<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a>    <span class="at">-a</span> AGATCGGAAGAGCACACGTCTGAACTCCAGTCA <span class="dt">\</span></span>
+<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">-A</span> AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT <span class="dt">\</span></span>
+<span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a>    <span class="at">-o</span> <span class="va">$R1_output</span> <span class="at">-p</span> <span class="va">$R2_output</span> <span class="dt">\</span></span>
+<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a>    <span class="va">$R1</span> <span class="va">$R2</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+</section>
+<section id="download_references" class="level1">
+<h1>Step 3: Downloading references for alignment</h1>
+<section id="human-hg38" class="level2">
+<h2 class="anchored" data-anchor-id="human-hg38">Human (hg38)</h2>
+<p>Here we will download reference files required for alignment and variant calling using GATK best practices for human genome (hg38).</p>
+<section id="loading-necessary-modules-and-creating-reference-directory" class="level3">
+<h3 class="anchored" data-anchor-id="loading-necessary-modules-and-creating-reference-directory">Loading necessary modules and creating reference directory</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">### Load necessary modules</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">ml</span> bwa</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ex">ml</span> samtools</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="ex">ml</span> gatk</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="ex">ml</span> picard-tools</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co">### Create reference directory</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> data/references</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="va">refDir</span><span class="op">=</span>data/references</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="downloading-reference-genome" class="level3">
+<h3 class="anchored" data-anchor-id="downloading-reference-genome">Downloading Reference Genome</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">### Download References Genome from UCSC (Ignore these lines if you already downloaded the references genome)</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="fu">wget</span> http://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz <span class="at">-O</span> .<span class="va">${refDir}</span>/hg38.fa.gz</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="fu">gunzip</span> <span class="va">${refDir}</span>/hg38.fa.gz</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co">### Index References Genome</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="ex">bwa</span> index <span class="va">${refDir}</span>/hg38.fa</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="ex">samtools</span> faidx <span class="va">${refDir}</span>/hg38.fa</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="ex">gatk</span> CreateSequenceDictionary <span class="at">-R</span> <span class="va">${refDir}</span>/hg38.fa</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="co">### or use Create Sequence Dictionary using picard</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="ex">java</span> <span class="at">-jar</span> picard.jar CreateSequenceDictionary R=<span class="va">${refDir}</span>/hg38.fa O=<span class="va">${refDir}</span>/hg38.dict</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="co">### Download Resources from GATK Google Cloud Bucket (Recommneded for GATK workflow)</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="co">## https://console.cloud.google.com/storage/browser/genomics-public-data/resources/broad/hg38/v0;tab=objects?prefix=&amp;forceOnObjectsSortingFiltering=false</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a><span class="co">## https://console.cloud.google.com/storage/browser/gatk-best-practices/somatic-hg38;tab=objects?prefix=&amp;forceOnObjectsSortingFiltering=false</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a><span class="co">## </span><span class="al">NOTE</span><span class="co"> : You might need to download crcmod via `pip install crcmod`</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="co">#gsutil cp gs://genomics-public-data/resources/broad/hg38/v0/Homo_sapiens_assembly38.* $refDir</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a><span class="ex">gsutil</span> cp gs://genomics-public-data/resources/broad/hg38/v0/<span class="pp">*</span> <span class="va">$refDir</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="downloading-ref-flat-for-gene-annotations" class="level3">
+<h3 class="anchored" data-anchor-id="downloading-ref-flat-for-gene-annotations">Downloading Ref Flat for gene annotations</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">### Download refFlat</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">wget</span> https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/refFlat.txt.gz <span class="at">-O</span> <span class="va">${refDir}</span>/refFlat.txt.gz</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="fu">gunzip</span> <span class="va">${refDir}</span>/refFlat.txt.gz</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="downloading-1000-genomes-panel-of-normals-gnomad-allele-frequency-database-exac-variants-database." class="level3">
+<h3 class="anchored" data-anchor-id="downloading-1000-genomes-panel-of-normals-gnomad-allele-frequency-database-exac-variants-database.">Downloading 1000-Genomes Panel of Normals, gnomAD allele-frequency database &amp; ExAC variants database.</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">gsutil</span> cp gs://gatk-best-practices/somatic-hg38/1000g_pon.hg38.<span class="pp">*</span> <span class="va">$refDir</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="ex">gsutil</span> cp gs://gatk-best-practices/somatic-hg38/af-only-gnomad.hg38.<span class="pp">*</span> <span class="va">$refDir</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="ex">gsutil</span> cp gs://gatk-best-practices/somatic-hg38/small_exac_common_3.hg38.<span class="pp">*</span> <span class="va">$refDir</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="ex">gatk</span> FuncotatorDataSourceDownloader <span class="at">--somatic</span> <span class="at">--validate-integrity</span> <span class="at">--extract-after-download</span> <span class="at">-O</span> <span class="va">$refDir</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="downloading-human-exome-bed-file" class="level3">
+<h3 class="anchored" data-anchor-id="downloading-human-exome-bed-file">Downloading Human exome bed file</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">### Download exome bed file</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">wget</span> https://www.twistbioscience.com/sites/default/files/resources/2022-12/hg38_exome_v2.0.2_targets_sorted_validated.re_annotated.bed <span class="at">-O</span> <span class="va">$refDir</span>/hg38_exome_v2.0.2_targets_sorted_validated.re_annotated.bed</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+</section>
+<section id="mouse-mm39" class="level2">
+<h2 class="anchored" data-anchor-id="mouse-mm39">Mouse (mm39)</h2>
+<section id="loading-necessary-modules-and-creating-reference-directory-1" class="level3">
+<h3 class="anchored" data-anchor-id="loading-necessary-modules-and-creating-reference-directory-1">Loading necessary modules and creating reference directory</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">### Load necessary modules</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="ex">ml</span> bwa</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="ex">ml</span> samtools</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="ex">ml</span> gatk</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="ex">ml</span> picard-tools</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="co">### Create reference directory</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> data/references</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="va">refDir</span><span class="op">=</span>data/references</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="downloading-reference-genome-1" class="level3">
+<h3 class="anchored" data-anchor-id="downloading-reference-genome-1">Downloading Reference Genome</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">wget</span> https://hgdownload.soe.ucsc.edu/goldenPath/mm39/bigZips/mm39.fa.gz <span class="at">-O</span> <span class="va">${refDir}</span>/mm39.fa.gz</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="fu">gunzip</span> <span class="va">${refDir}</span>/mm39.fa.gz</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="ex">bwa</span> index <span class="va">${refDir}</span>/mm39.fa</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="ex">samtools</span> faidx <span class="va">${refDir}</span>/mm39.fa</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="ex">gatk</span> CreateSequenceDictionary <span class="at">-R</span> <span class="va">${refDir}</span>/mm39.fa</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="downloading-ref-flat-for-gene-annotations-1" class="level3">
+<h3 class="anchored" data-anchor-id="downloading-ref-flat-for-gene-annotations-1">Downloading Ref Flat for gene annotations</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">wget</span> https://hgdownload.soe.ucsc.edu/goldenPath/mm39/database/refFlat.txt.gz <span class="at">-o</span> <span class="va">${refDir}</span>/refFlat.txt.gz</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="fu">gunzip</span> <span class="va">${refDir}</span>/refFlat.txt.gz</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="downloading-known-sites-for-bqsr-processing" class="level3">
+<h3 class="anchored" data-anchor-id="downloading-known-sites-for-bqsr-processing">Downloading Known sites for BQSR processing</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">## mm10</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co">## for mm10 as described in (https://github.com/igordot/genomics/blob/master/workflows/gatk-mouse-mm10.md)</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="co">## NCBI SNPs database</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="va">vcf</span><span class="op">=</span><span class="va">${refDir}</span>/00-All.vcf.gz</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="fu">wget</span> ftp://ftp.ncbi.nih.gov/snp/organisms/archive/mouse_10090/VCF/00-All.vcf.gz <span class="at">-O</span> <span class="va">$vcf</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="va">vcf_new</span><span class="op">=</span><span class="va">${refDir}</span>/00-All.vcf_mm10.gz</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="fu">zcat</span> <span class="va">$vcf</span> <span class="kw">|</span> <span class="fu">sed</span> <span class="st">'s/^\([0-9XY]\)/chr\1/'</span> <span class="op">&gt;</span> <span class="va">$vcf_new</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span> <span class="at">-fv</span> <span class="va">$vcf</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a><span class="co">## MGP database for indels</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a><span class="fu">wget</span> ftp://ftp-mouse.sanger.ac.uk/REL-1505-SNPs_Indels/mgp.v5.merged.indels.dbSNP142.normed.vcf.gz <span class="dt">\</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>-O <span class="va">${refDir}</span>/mgp.v5.indels.vcf.</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Filter for passing variants with chr added:</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a><span class="co"># adjust header</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a><span class="fu">zcat</span> <span class="va">${refDir}</span>/mgp.v5.indels.vcf.gz <span class="kw">|</span> <span class="fu">head</span> <span class="at">-1000</span> <span class="kw">|</span> <span class="fu">grep</span> <span class="st">"^#"</span> <span class="kw">|</span> <span class="fu">cut</span> <span class="at">-f</span> 1-8 <span class="dt">\</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a><span class="kw">|</span> <span class="fu">grep</span> <span class="at">-v</span> <span class="st">"#contig"</span> <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-v</span> <span class="st">"#source"</span> <span class="dt">\</span></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> <span class="va">${refDir}</span>/mgp.v5.indels.pass.chr.vcf</span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a><span class="co"># keep only passing and adjust chromosome name</span></span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a><span class="fu">zcat</span> <span class="va">${refDir}</span>/mgp.v5.indels.vcf.gz <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-v</span> <span class="st">"^#"</span> <span class="kw">|</span> <span class="fu">cut</span> <span class="at">-f</span> 1-8 <span class="dt">\</span></span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a><span class="kw">|</span> <span class="fu">grep</span> <span class="at">-w</span> <span class="st">"PASS"</span> <span class="kw">|</span> <span class="fu">sed</span> <span class="st">'s/^\([0-9MXY]\)/chr\1/'</span> <span class="dt">\</span></span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;</span> <span class="va">${refDir}</span>/mgp.v5.indels.pass.chr.vcf</span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a><span class="co"># Sort VCF (automatically generated index has to be deleted due to a known bug):</span></span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a><span class="ex">java</span> <span class="at">-Xms16G</span> <span class="at">-Xmx16G</span> <span class="at">-jar</span> <span class="va">$PICARDLIB</span>/picard.jar SortVcf VERBOSITY=WARNING <span class="dt">\</span></span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a>SD=genome.dict <span class="dt">\</span></span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>I=<span class="va">${refDir}</span>/mgp.v5.indels.pass.chr.vcf <span class="dt">\</span></span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a>O=<span class="va">${refDir}</span>/mgp.v5.indels.pass.chr.sort.vcf</span>
+<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span> <span class="at">-fv</span> <span class="va">${refDir}</span>/mgp.v5.indels.pass.chr.sort.vcf.idx</span>
+<span id="cb14-32"><a href="#cb14-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-33"><a href="#cb14-33" aria-hidden="true" tabindex="-1"></a><span class="co">## mm39</span></span>
+<span id="cb14-34"><a href="#cb14-34" aria-hidden="true" tabindex="-1"></a><span class="co">## When using mm39, and the NCBI database is based on mm10,</span></span>
+<span id="cb14-35"><a href="#cb14-35" aria-hidden="true" tabindex="-1"></a><span class="co">## and the MGP website is archived, we will use the datasets from the</span></span>
+<span id="cb14-36"><a href="#cb14-36" aria-hidden="true" tabindex="-1"></a><span class="co">## https://www.mousegenomes.org/ for mm39</span></span>
+<span id="cb14-37"><a href="#cb14-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-38"><a href="#cb14-38" aria-hidden="true" tabindex="-1"></a><span class="co">## Mouse Genome Project SNPs database</span></span>
+<span id="cb14-39"><a href="#cb14-39" aria-hidden="true" tabindex="-1"></a><span class="va">mpg_snps</span><span class="op">=</span><span class="va">${refDir}</span>/mgp_REL2021_snps.vcf.gz</span>
+<span id="cb14-40"><a href="#cb14-40" aria-hidden="true" tabindex="-1"></a><span class="va">mod_mpg_snps</span><span class="op">=</span><span class="va">${refDir}</span>/mgp_REL2021_snps.chr.vcf</span>
+<span id="cb14-41"><a href="#cb14-41" aria-hidden="true" tabindex="-1"></a><span class="va">final_mpg_snps</span><span class="op">=</span><span class="va">${refDir}</span>/mgp_REL2021_snps.chr.sorted.vcf</span>
+<span id="cb14-42"><a href="#cb14-42" aria-hidden="true" tabindex="-1"></a><span class="fu">wget</span> ftp://ftp.ebi.ac.uk/pub/databases/mousegenomes/REL-2112-v8-SNPs_Indels/mgp_REL2021_snps.vcf.gz <span class="dt">\</span></span>
+<span id="cb14-43"><a href="#cb14-43" aria-hidden="true" tabindex="-1"></a>-O <span class="va">$mpg_snps</span></span>
+<span id="cb14-44"><a href="#cb14-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-45"><a href="#cb14-45" aria-hidden="true" tabindex="-1"></a><span class="co"># adjust header</span></span>
+<span id="cb14-46"><a href="#cb14-46" aria-hidden="true" tabindex="-1"></a><span class="fu">zcat</span> <span class="va">$mpg_snps</span> <span class="kw">|</span> <span class="fu">head</span> <span class="at">-1000</span> <span class="kw">|</span> <span class="fu">grep</span> <span class="st">"^#"</span> <span class="kw">|</span> <span class="fu">cut</span> <span class="at">-f</span> 1-8 <span class="dt">\</span></span>
+<span id="cb14-47"><a href="#cb14-47" aria-hidden="true" tabindex="-1"></a><span class="kw">|</span> <span class="fu">grep</span> <span class="at">-v</span> <span class="st">"#contig"</span> <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-v</span> <span class="st">"#source"</span> <span class="dt">\</span></span>
+<span id="cb14-48"><a href="#cb14-48" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> <span class="va">$mod_mpg_snps</span></span>
+<span id="cb14-49"><a href="#cb14-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-50"><a href="#cb14-50" aria-hidden="true" tabindex="-1"></a><span class="co"># keep only passing and adjust chromosome name</span></span>
+<span id="cb14-51"><a href="#cb14-51" aria-hidden="true" tabindex="-1"></a><span class="fu">zcat</span> <span class="va">$mpg_snps</span> <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-v</span> <span class="st">"^#"</span> <span class="kw">|</span> <span class="fu">cut</span> <span class="at">-f</span> 1-8 <span class="dt">\</span></span>
+<span id="cb14-52"><a href="#cb14-52" aria-hidden="true" tabindex="-1"></a><span class="kw">|</span> <span class="fu">grep</span> <span class="at">-w</span> <span class="st">"PASS"</span> <span class="kw">|</span> <span class="fu">sed</span> <span class="st">'s/^\([0-9MXY]\)/chr\1/'</span> <span class="dt">\</span></span>
+<span id="cb14-53"><a href="#cb14-53" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;</span> <span class="va">$mod_mpg_snps</span></span>
+<span id="cb14-54"><a href="#cb14-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-55"><a href="#cb14-55" aria-hidden="true" tabindex="-1"></a><span class="co"># Sort VCF</span></span>
+<span id="cb14-56"><a href="#cb14-56" aria-hidden="true" tabindex="-1"></a><span class="ex">java</span> <span class="at">-Xms16G</span> <span class="at">-Xmx16G</span> <span class="at">-jar</span> <span class="va">$PICARDLIB</span>/picard.jar SortVcf <span class="dt">\</span></span>
+<span id="cb14-57"><a href="#cb14-57" aria-hidden="true" tabindex="-1"></a>SD=<span class="va">${refDir}</span>/mm39.dict <span class="dt">\</span></span>
+<span id="cb14-58"><a href="#cb14-58" aria-hidden="true" tabindex="-1"></a>I=<span class="va">$mod_mpg_snps</span> <span class="dt">\</span></span>
+<span id="cb14-59"><a href="#cb14-59" aria-hidden="true" tabindex="-1"></a>O=<span class="va">$final_mpg_snps</span></span>
+<span id="cb14-60"><a href="#cb14-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-61"><a href="#cb14-61" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span> <span class="at">-vf</span> <span class="va">$mpg_snps</span> <span class="va">$mod_mpg_snps</span></span>
+<span id="cb14-62"><a href="#cb14-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-63"><a href="#cb14-63" aria-hidden="true" tabindex="-1"></a><span class="co"># Mouse Genome Project INDEL database</span></span>
+<span id="cb14-64"><a href="#cb14-64" aria-hidden="true" tabindex="-1"></a><span class="va">mpg_indels</span><span class="op">=</span><span class="va">${refDir}</span>/mgp_REL2021_indels.vcf.gz</span>
+<span id="cb14-65"><a href="#cb14-65" aria-hidden="true" tabindex="-1"></a><span class="va">mod_mpg_indels</span><span class="op">=</span><span class="va">${refDir}</span>/mgp_REL2021_indels.chr.vcf</span>
+<span id="cb14-66"><a href="#cb14-66" aria-hidden="true" tabindex="-1"></a><span class="va">final_mpg_indels</span><span class="op">=</span><span class="va">${refDir}</span>/mgp_REL2021_indels.chr.sorted.vcf</span>
+<span id="cb14-67"><a href="#cb14-67" aria-hidden="true" tabindex="-1"></a><span class="fu">wget</span> ftp://ftp.ebi.ac.uk/pub/databases/mousegenomes/REL-2112-v8-SNPs_Indels/mgp_REL2021_indels.vcf.gz <span class="dt">\</span></span>
+<span id="cb14-68"><a href="#cb14-68" aria-hidden="true" tabindex="-1"></a>-O <span class="va">$mpg_indels</span></span>
+<span id="cb14-69"><a href="#cb14-69" aria-hidden="true" tabindex="-1"></a><span class="co"># adjust header</span></span>
+<span id="cb14-70"><a href="#cb14-70" aria-hidden="true" tabindex="-1"></a><span class="fu">zcat</span> <span class="va">$mpg_indels</span> <span class="kw">|</span> <span class="fu">head</span> <span class="at">-1000</span> <span class="kw">|</span> <span class="fu">grep</span> <span class="st">"^#"</span> <span class="kw">|</span> <span class="fu">cut</span> <span class="at">-f</span> 1-8 <span class="dt">\</span></span>
+<span id="cb14-71"><a href="#cb14-71" aria-hidden="true" tabindex="-1"></a><span class="kw">|</span> <span class="fu">grep</span> <span class="at">-v</span> <span class="st">"#contig"</span> <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-v</span> <span class="st">"#source"</span> <span class="dt">\</span></span>
+<span id="cb14-72"><a href="#cb14-72" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> <span class="va">$mod_mpg_indels</span></span>
+<span id="cb14-73"><a href="#cb14-73" aria-hidden="true" tabindex="-1"></a><span class="co"># keep only passing and adjust chromosome name</span></span>
+<span id="cb14-74"><a href="#cb14-74" aria-hidden="true" tabindex="-1"></a><span class="fu">zcat</span> <span class="va">$mpg_indels</span> <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-v</span> <span class="st">"^#"</span> <span class="kw">|</span> <span class="fu">cut</span> <span class="at">-f</span> 1-8 <span class="dt">\</span></span>
+<span id="cb14-75"><a href="#cb14-75" aria-hidden="true" tabindex="-1"></a><span class="kw">|</span> <span class="fu">sed</span> <span class="st">'s/^\([0-9MXY]\)/chr\1/'</span> <span class="dt">\</span></span>
+<span id="cb14-76"><a href="#cb14-76" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;</span> <span class="va">$mod_mpg_indels</span></span>
+<span id="cb14-77"><a href="#cb14-77" aria-hidden="true" tabindex="-1"></a><span class="co"># Sort VCF</span></span>
+<span id="cb14-78"><a href="#cb14-78" aria-hidden="true" tabindex="-1"></a><span class="ex">java</span> <span class="at">-Xms16G</span> <span class="at">-Xmx16G</span> <span class="at">-jar</span> <span class="va">$PICARDLIB</span>/picard.jar SortVcf <span class="dt">\</span></span>
+<span id="cb14-79"><a href="#cb14-79" aria-hidden="true" tabindex="-1"></a>SD=<span class="va">${refDir}</span>/mm39.dict <span class="dt">\</span></span>
+<span id="cb14-80"><a href="#cb14-80" aria-hidden="true" tabindex="-1"></a>I=<span class="va">$mod_mpg_indels</span> <span class="dt">\</span></span>
+<span id="cb14-81"><a href="#cb14-81" aria-hidden="true" tabindex="-1"></a>O=<span class="va">$final_mpg_indels</span></span>
+<span id="cb14-82"><a href="#cb14-82" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-83"><a href="#cb14-83" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span> <span class="at">-vf</span> <span class="va">$mpg_indels</span> <span class="va">$mod_mpg_indels</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="downloading-mouse-exome-bed-file" class="level3">
+<h3 class="anchored" data-anchor-id="downloading-mouse-exome-bed-file">Downloading Mouse exome bed file</h3>
+<p>WES capture kit bed file is downloaded <a href="https://kb.10xgenomics.com/hc/en-us/articles/115004150923-Where-can-I-find-the-Agilent-Target-BED-files-">here</a> Since the bait file is based on mm9, <a href="https://genome.ucsc.edu/cgi-bin/hgLiftOver">liftover tool</a> was used to map the coordinates to mm39</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">wget</span> <span class="at">--timestamping</span> <span class="dt">\</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">'ftp://hgdownload.soe.ucsc.edu/goldenPath/mm9/liftOver/mm9ToMm39.over.chain.gz'</span> <span class="dt">\</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">-O</span> <span class="va">${refDir}</span>/mm9ToMm39.over.chain.gz</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="fu">gunzip</span> <span class="va">${refDir}</span>/mm9ToMm39.over.chain.gz</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="fu">tail</span> <span class="at">-n</span> +3 <span class="va">${refDir}</span>/S0276129/S0276129_Regions.bed <span class="op">&gt;</span> <span class="va">${refDir}</span>/S0276129/S0276129_Regions_no_header.bed</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a><span class="ex">./liftOver</span> <span class="dt">\</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a><span class="va">${refDir}</span>/S0276129/S0276129_Regions_no_header.bed <span class="dt">\</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a><span class="va">${refDir}</span>/mm9ToMm39.over.chain <span class="dt">\</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a><span class="va">${refDir}</span>/S0276129/S0276129_Regions_mm39.bed unMapped</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="callout callout-style-default callout-tip callout-titled" title="Adding 'chr' to BAM file chromosome names">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-4-contents" aria-controls="callout-4" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Adding ‘chr’ to BAM file chromosome names
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-4" class="callout-4-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>Sometimes we need to add ‘chr’ before the chromosome number in the fastq file</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="ex">samtools</span> view <span class="at">-H</span> <span class="op">&lt;</span>bam_file<span class="op">&gt;</span> <span class="op">&gt;</span> <span class="op">&lt;</span>sam_file_header<span class="op">&gt;</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sed</span> <span class="at">-i</span> <span class="st">'s/\(SN:\)\([^\t]*\)/\1chr\2/'</span> <span class="op">&lt;</span>sam_file_header<span class="op">&gt;</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="fu">sed</span> <span class="at">-i</span> <span class="st">'s/chrMT/chrM/g'</span> <span class="op">&lt;</span>sam_file_header<span class="op">&gt;</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="ex">samtools</span> reheader <span class="op">&lt;</span>sam_file_header<span class="op">&gt;</span> <span class="op">&lt;</span>bam_file<span class="op">&gt;</span> <span class="op">&gt;</span> <span class="op">&lt;</span>bam_file_w_chr<span class="op">&gt;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>To paralleize this workflow on multiple samples using SLURM on an HPC cluster, you can use the following script.</p>
+<ul>
+<li>Input : “bam_manifest.txt” with two columns, the first is sample name and the second is the path for the bam file.</li>
+<li>Output : BAM files with ‘chr’ added to chromosome names in the same directory as the original BAM file with the suffix ’_w_chr.bam’</li>
+</ul>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>column1</th>
+<th>column2</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>sample1</td>
+<td>path/to/sample1.bam</td>
+</tr>
+<tr class="even">
+<td>sample2</td>
+<td>path/to/sample2.bam</td>
+</tr>
+<tr class="odd">
+<td>…</td>
+<td>…</td>
+</tr>
+</tbody>
+</table>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/bash</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --account=</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --job-name='adding_chr_to_bam_file_%a'</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --output=logs/adding_chr_to_bam_file_%a.log</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --partition=standard</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --mem=32G</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --cpus-per-task=8</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --time=12:00:00</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --array=1-&lt;number_of_samples&gt;</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a><span class="ex">ml</span> samtools</span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a><span class="va">samples_manifest</span><span class="op">=</span>bam_manifest.txt</span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a><span class="va">sample</span><span class="op">=</span><span class="va">$(</span><span class="fu">cat</span> <span class="va">$samples_manifest</span> <span class="kw">|</span> <span class="fu">cut</span> <span class="at">-f1</span> <span class="kw">|</span> <span class="fu">sed</span> <span class="at">-n</span> <span class="va">${SLURM_ARRAY_TASK_ID}</span>p<span class="va">)</span></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a><span class="va">bam</span><span class="op">=</span><span class="va">$(</span><span class="fu">cat</span> <span class="va">$samples_manifest</span> <span class="kw">|</span> <span class="fu">cut</span> <span class="at">-f2</span> <span class="kw">|</span> <span class="fu">sed</span> <span class="at">-n</span> <span class="va">${SLURM_ARRAY_TASK_ID}</span>p<span class="va">)</span></span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a><span class="va">bamDir</span><span class="op">=</span><span class="va">$(</span><span class="fu">dirname</span> <span class="va">$bam)</span></span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> <span class="va">${sample}</span>_temp</span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a><span class="ex">samtools</span> view <span class="at">-H</span> <span class="va">$bam</span> <span class="op">&gt;</span> <span class="va">${sample}</span>_temp/<span class="va">${sample}</span>_header.sam</span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a><span class="fu">sed</span> <span class="at">-i</span> <span class="st">'s/\(SN:\)\([^\t]*\)/\1chr\2/'</span> <span class="va">${sample}</span>_temp/<span class="va">${sample}</span>_header.sam</span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a><span class="co">## sed -i 's/chrMT/chrM/g' ${sample}_temp/${sample}_header.sam</span></span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a><span class="ex">samtools</span> reheader <span class="va">${sample}</span>_temp/<span class="va">${sample}</span>_header.sam <span class="va">$bam</span> <span class="op">&gt;</span> <span class="va">${bamDir}</span>/<span class="va">${sample}</span>_w_chr.bam</span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span> <span class="at">-r</span> <span class="va">${sample}</span>_temp</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="reads_alignment" class="level2">
+<h2 class="anchored" data-anchor-id="reads_alignment">Step 4: Reads alignment to Reference Genome</h2>
+<p>We will use <code>bwa</code> to align the fastq files to reference genome and generate BAM files.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="ex">bwa</span> mem <span class="op">&lt;</span>Ref_Genome<span class="op">&gt;</span> <span class="op">&lt;</span>R1_fastq<span class="op">&gt;</span> <span class="op">&lt;</span>R2_fastq<span class="op">&gt;</span> -t 16 <span class="at">-o</span> <span class="op">&lt;</span>output_sam<span class="op">&gt;</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="ex">samtools</span> view <span class="at">-b</span> <span class="at">--threads</span> 16 <span class="at">--verbosity</span> 1 <span class="op">&lt;</span>output_sam<span class="op">&gt;</span> -o <span class="op">&lt;</span>output_bam<span class="op">&gt;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="callout callout-style-default callout-note callout-titled" title="SLURM Script">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>SLURM Script
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>To parallelize this workflow on multiple samples using SLURM on an HPC cluster, you can use the following script.</p>
+<ul>
+<li>Input : same <code>R1_R2_fastq_manifest.txt</code> as above. The first column as sample name, the second column as R1 fastq file path and the third column as R2 fastq file path.</li>
+<li>Output : BAM files in a directory <code>outputs/alignment</code></li>
+</ul>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>column1</th>
+<th>column2</th>
+<th>column3</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>sample1</td>
+<td>path/to/sample1_R1.fastq.gz</td>
+<td>path/to/sample1_R2.fastq.gz</td>
+</tr>
+<tr class="even">
+<td>sample2</td>
+<td>path/to/sample2_R1.fastq.gz</td>
+<td>path/to/sample2_R2.fastq.gz</td>
+</tr>
+<tr class="odd">
+<td>…</td>
+<td>…</td>
+<td>…</td>
+</tr>
+</tbody>
+</table>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb19"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/bash</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --account=</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --job-name='bwa_%a'</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --output=logs/bwa_%a.log</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --partition=standard</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --mem=64G</span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --cpus-per-task=8</span></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --time=24:00:00</span></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --array=1-&lt;number_of_samples&gt;</span></span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a><span class="co">## Loading Important Modules from Greatlakes HPC</span></span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a><span class="ex">ml</span> samtools</span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a><span class="ex">ml</span> bwa</span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a><span class="ex">ml</span> gatk</span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a><span class="ex">ml</span> picard-tools</span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a><span class="co">## Setting up variables for files and directories</span></span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a><span class="va">samples_manifest</span><span class="op">=</span>bwa_manifest.txt</span>
+<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a><span class="va">ref</span><span class="op">=</span>references/mm39.fa</span>
+<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a><span class="va">outputDir</span><span class="op">=</span>outputs/aligment</span>
+<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> <span class="at">-p</span> <span class="va">${outputDir}</span></span>
+<span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a><span class="co">## Subsetting a sample</span></span>
+<span id="cb19-27"><a href="#cb19-27" aria-hidden="true" tabindex="-1"></a><span class="va">sample</span><span class="op">=</span><span class="va">$(</span><span class="fu">cat</span> <span class="va">$samples_manifest</span> <span class="kw">|</span> <span class="fu">cut</span> <span class="at">-f1</span> <span class="kw">|</span> <span class="fu">sed</span> <span class="at">-n</span> $<span class="pp">[</span><span class="ss">SLURM_ARRAY_TASK_ID</span><span class="pp">]</span>p<span class="va">)</span></span>
+<span id="cb19-28"><a href="#cb19-28" aria-hidden="true" tabindex="-1"></a><span class="va">R1</span><span class="op">=</span><span class="va">$(</span><span class="fu">cat</span> <span class="va">$samples_manifest</span> <span class="kw">|</span> <span class="fu">cut</span> <span class="at">-f2</span> <span class="kw">|</span> <span class="fu">sed</span> <span class="at">-n</span> $<span class="pp">[</span><span class="ss">SLURM_ARRAY_TASK_ID</span><span class="pp">]</span>p<span class="va">)</span></span>
+<span id="cb19-29"><a href="#cb19-29" aria-hidden="true" tabindex="-1"></a><span class="va">R2</span><span class="op">=</span><span class="va">$(</span><span class="fu">cat</span> <span class="va">$samples_manifest</span> <span class="kw">|</span> <span class="fu">cut</span> <span class="at">-f3</span> <span class="kw">|</span> <span class="fu">sed</span> <span class="at">-n</span> $<span class="pp">[</span><span class="ss">SLURM_ARRAY_TASK_ID</span><span class="pp">]</span>p<span class="va">)</span></span>
+<span id="cb19-30"><a href="#cb19-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-31"><a href="#cb19-31" aria-hidden="true" tabindex="-1"></a><span class="co">## Logging information</span></span>
+<span id="cb19-32"><a href="#cb19-32" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">"::&gt; Analyzing Sample </span><span class="va">$sample</span><span class="st">"</span> </span>
+<span id="cb19-33"><a href="#cb19-33" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="at">-e</span> <span class="st">"::&gt; R1 path </span><span class="va">$R1</span><span class="st">"</span></span>
+<span id="cb19-34"><a href="#cb19-34" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="at">-e</span> <span class="st">"::&gt; R2 path </span><span class="va">$R2</span><span class="st">"</span></span>
+<span id="cb19-35"><a href="#cb19-35" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="at">-e</span> <span class="st">"::&gt; Results will be stored in </span><span class="va">${outputDir}</span><span class="st">"</span></span>
+<span id="cb19-36"><a href="#cb19-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-37"><a href="#cb19-37" aria-hidden="true" tabindex="-1"></a><span class="co">## Alignment using BWA</span></span>
+<span id="cb19-38"><a href="#cb19-38" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">"::&gt; Aligning sample using BWA &lt;::"</span></span>
+<span id="cb19-39"><a href="#cb19-39" aria-hidden="true" tabindex="-1"></a><span class="ex">bwa</span> mem <span class="va">$ref</span> <span class="va">$R1</span> <span class="va">$R2</span> <span class="at">-t</span> 16  <span class="at">-o</span> <span class="va">${outputDir}</span>/<span class="va">${sample}</span>.sam </span>
+<span id="cb19-40"><a href="#cb19-40" aria-hidden="true" tabindex="-1"></a><span class="ex">samtools</span> view <span class="at">-b</span> <span class="at">--threads</span> 16 <span class="at">--verbosity</span> 1 <span class="va">${outputDir}</span>/<span class="va">${sample}</span>.sam <span class="at">-o</span> <span class="va">${outputDir}</span>/<span class="va">${sample}</span>.bam </span>
+<span id="cb19-41"><a href="#cb19-41" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span> <span class="at">-vf</span> <span class="va">${outputDir}</span>/<span class="va">${sample}</span>.sam</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+</section>
+<section id="GATK_preprocessing" class="level2">
+<h2 class="anchored" data-anchor-id="GATK_preprocessing">Step 5: Post-Alignment Processing using GATK Best Practices for Variant Calling</h2>
+<p>After creating the BAM files, we will perform several preprocessing steps recommended by GATK Best Practices for variant calling. This includes adding read groups, sorting, marking duplicates, and base quality score recalibration (BQSR).</p>
+<ul>
+<li>References files used for the variant are downloaded upfront and stored in a parent directory (i.e., outside the project directory to be used later in other projects) called <code>references</code>. References include reference genome, VCF files for (panel of normal and gnomAD germline variants and common germline variant), and resources for Funcotator as well</li>
+<li>Each sample is aligned to hg38 reference genome (using the release recommended by GATK) using <strong>BWA</strong> software creating a <code>sam</code> file that is converted to <code>bam</code> file afterwards using <strong>samtools</strong></li>
+<li>Read groups are added to each bam file using <strong>AddOrReplaceReadGroups</strong></li>
+<li>Duplicates are marked using <strong>MarkDuplicatesSpark</strong></li>
+<li>Due to certain systematic errors in base quality score, a base quality score recalibration step is necessary. This is done through <strong>BaseRecalibrator</strong>, followed by <strong>ApplyBQSR</strong>.</li>
+</ul>
+<section id="add-read-groups" class="level4">
+<h4 class="anchored" data-anchor-id="add-read-groups">4.1 Add Read Groups</h4>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb20"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">## Add Read Groups as it is required by some GATK tools. Here we just add sample name as read group</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="ex">gatk</span> AddOrReplaceReadGroups <span class="at">-I</span> <span class="op">&lt;</span>bam_file<span class="op">&gt;</span> <span class="dt">\</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>-O <span class="op">&lt;</span>bam_file_with_RG<span class="op">&gt;</span> <span class="dt">\</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>-LB <span class="op">&lt;</span>sample_name<span class="op">&gt;</span> <span class="dt">\</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>-PL Illumina <span class="dt">\</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>-PU <span class="op">&lt;</span>sample_name<span class="op">&gt;</span> <span class="dt">\</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>-SM <span class="op">&lt;</span>sample_name<span class="op">&gt;</span> <span class="dt">\</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>--VERBOSITY ERROR</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="sort-bam-files-according-to-chromosomal-coordinates" class="level4">
+<h4 class="anchored" data-anchor-id="sort-bam-files-according-to-chromosomal-coordinates">4.2 Sort BAM files (according to chromosomal coordinates)</h4>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb21"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="ex">samtools</span> sort <span class="at">-O</span> bam <span class="at">-o</span> <span class="op">&lt;</span>sorted_bam_file<span class="op">&gt;</span> <span class="op">&lt;</span>bam_file_with_RG<span class="op">&gt;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="index-bam-files" class="level4">
+<h4 class="anchored" data-anchor-id="index-bam-files">4.3 Index BAM files</h4>
+<p>We use samtools to index the sorted BAM files, creating <code>bai</code> file for quick access to specific regions in the BAM file.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb22"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="ex">samtools</span> index <span class="at">-b</span> <span class="op">&lt;</span>sorted_bam_file<span class="op">&gt;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="mark-duplicate-reads" class="level4">
+<h4 class="anchored" data-anchor-id="mark-duplicate-reads">4.4 Mark Duplicate Reads</h4>
+<p>We use GATK to mark duplicate reads in the BAM files, which helps to reduce bias in variant calling.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb23"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="ex">gatk</span> MarkDuplicates <span class="at">-I</span> <span class="op">&lt;</span>sorted_bam_file<span class="op">&gt;</span> <span class="dt">\</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>-O <span class="op">&lt;</span>bam_file_with_marked_duplicates<span class="op">&gt;</span> <span class="dt">\</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>-M <span class="op">&lt;</span>duplicated_metrics_file.txt<span class="op">&gt;</span> <span class="dt">\</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>--VERBOSITY ERROR </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="base-recalibration" class="level4">
+<h4 class="anchored" data-anchor-id="base-recalibration">4.5 Base Recalibration</h4>
+<p>We use GATK Base Recalibrator to perform base quality score recalibration (BQSR) using known variant sites. Known variant sites is downloaded in the <a href="#download_references">Step 3: Downloading references for alignment</a> section above</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb24"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co">## for hg38</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="va">known_sites1</span><span class="op">=</span>data/references/Homo_sapiens_assembly38.dbsnp138.vcf</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="va">known_sites2</span><span class="op">=</span>data/references/Homo_sapiens_assembly38.known_indels.vcf.gz</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="co">## for mm9</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="va">known_sites1</span><span class="op">=</span>data/references/mgp_REL2021_indels.chr.sorted.vcf</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a><span class="va">known_sites2</span><span class="op">=</span>data/references/mgp_REL2021_snps.chr.sorted.vcf</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>We then run GATK <code>BaseRecalibrator</code> as follows</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb25"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="ex">gatk</span> BaseRecalibrator <span class="dt">\</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>-I <span class="op">&lt;</span>bam_file_with_marked_duplicates<span class="op">&gt;</span> <span class="dt">\</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>-R <span class="op">&lt;</span>ref_fastq<span class="op">&gt;</span> <span class="dt">\</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>--known-sites <span class="va">$known_sites1</span> <span class="dt">\</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>--known-sites <span class="va">$known_sites2</span> <span class="dt">\</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>-O <span class="op">&lt;</span>DupStat_table<span class="op">&gt;</span> <span class="dt">\</span></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>--verbosity ERROR </span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a><span class="ex">gatk</span> ApplyBQSR <span class="at">-R</span> <span class="op">&lt;</span>ref_fastq<span class="op">&gt;</span> <span class="dt">\</span></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>-I <span class="op">&lt;</span>bam_file_with_marked_duplicates<span class="op">&gt;</span> <span class="dt">\</span></span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>--bqsr-recal-file <span class="op">&lt;</span>DupStat_table<span class="op">&gt;</span> <span class="dt">\</span></span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>-O <span class="op">&lt;</span>BSQR_bam_file<span class="op">&gt;</span> <span class="dt">\</span></span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a>--verbosity ERROR </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>BSQR_bam_file</strong> output is the final output used for downstream SNV and CNV analysis</p>
+</section>
+<section id="alignment-quality-control" class="level4">
+<h4 class="anchored" data-anchor-id="alignment-quality-control">4.6 Alignment Quality Control</h4>
+<p>You can assess the alignment quality as follows</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb26"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Collect multiple metrics</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="ex">gatk</span> CollectMultipleMetrics <span class="dt">\</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">-R</span> reference.fa <span class="dt">\</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">-I</span> aligned/sample.bqsr.bam <span class="dt">\</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">-O</span> metrics/sample <span class="dt">\</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">--PROGRAM</span> CollectAlignmentSummaryMetrics <span class="dt">\</span></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">--PROGRAM</span> CollectInsertSizeMetrics <span class="dt">\</span></span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">--PROGRAM</span> CollectGcBiasMetrics</span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Collect WES-specific metrics</span></span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a><span class="ex">gatk</span> CollectHsMetrics <span class="dt">\</span></span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">-R</span> reference.fa <span class="dt">\</span></span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">-I</span> aligned/sample.bqsr.bam <span class="dt">\</span></span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">-O</span> metrics/sample.hs_metrics.txt <span class="dt">\</span></span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">--BAIT_INTERVALS</span> targets.interval_list <span class="dt">\</span></span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">--TARGET_INTERVALS</span> targets.interval_list</span>
+<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate coverage</span></span>
+<span id="cb26-19"><a href="#cb26-19" aria-hidden="true" tabindex="-1"></a><span class="ex">mosdepth</span> <span class="at">-t</span> 4 <span class="at">-b</span> targets.bed metrics/sample aligned/sample.bqsr.bam</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="key-quality-metrics" class="level3">
+<h3 class="anchored" data-anchor-id="key-quality-metrics">Key Quality Metrics</h3>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Metric</th>
+<th>Expected</th>
+<th>Concern</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Mean target coverage</td>
+<td>&gt;80x</td>
+<td>&lt;50x</td>
+</tr>
+<tr class="even">
+<td>% bases ≥30x</td>
+<td>&gt;80%</td>
+<td>&lt;60%</td>
+</tr>
+<tr class="odd">
+<td>% on-target reads</td>
+<td>&gt;70%</td>
+<td>&lt;50%</td>
+</tr>
+<tr class="even">
+<td>Duplicate rate</td>
+<td>&lt;20%</td>
+<td>&gt;30%</td>
+</tr>
+<tr class="odd">
+<td>Insert size median</td>
+<td>~150-200 bp</td>
+<td>Varies by library</td>
+</tr>
+</tbody>
+</table>
+<div class="callout callout-style-default callout-note callout-titled" title="SLURM Script">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>SLURM Script
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>To parallelize this workflow on multiple samples using SLURM on an HPC cluster, you can use the following script.</p>
+<ul>
+<li>Input : <code>samples_manifest.txt</code> with one column containing sample names. Reference Genome and known sites used for BSQR are defined in the script.</li>
+<li>Output : Preprocessed BAM files in a directory <code>outputs/GATK_preprocessing</code></li>
+</ul>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>column1</th>
+<th>column2</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>sample1</td>
+<td>path/to/sample1.bam</td>
+</tr>
+<tr class="even">
+<td>sample2</td>
+<td>path/to/sample2.bam</td>
+</tr>
+<tr class="odd">
+<td>…</td>
+<td>…</td>
+</tr>
+</tbody>
+</table>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb27"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/bash</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --account=</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --job-name='GATK_prerpocessing_%a'</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --output=logs/GATK_prerpocessing_%a.log</span></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --partition=standard</span></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --mem=64G</span></span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --cpus-per-task=8</span></span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --time=24:00:00</span></span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --array=1-&lt;number_of_samples&gt;</span></span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a><span class="co">## Loading Important Modules from Greatlakes HPC</span></span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a><span class="ex">ml</span> samtools</span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a><span class="ex">ml</span> bwa</span>
+<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a><span class="ex">ml</span> gatk</span>
+<span id="cb27-18"><a href="#cb27-18" aria-hidden="true" tabindex="-1"></a><span class="ex">ml</span> picard-tools</span>
+<span id="cb27-19"><a href="#cb27-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-20"><a href="#cb27-20" aria-hidden="true" tabindex="-1"></a><span class="co">## Setting up variables for files and directories</span></span>
+<span id="cb27-21"><a href="#cb27-21" aria-hidden="true" tabindex="-1"></a><span class="va">samples_manifest</span><span class="op">=</span>outputs/samples_manifest.txt</span>
+<span id="cb27-22"><a href="#cb27-22" aria-hidden="true" tabindex="-1"></a><span class="va">ref</span><span class="op">=</span>data/references/hg38.fa</span>
+<span id="cb27-23"><a href="#cb27-23" aria-hidden="true" tabindex="-1"></a><span class="va">known_sites1</span><span class="op">=</span>data/references/Homo_sapiens_assembly38.dbsnp138.vcf</span>
+<span id="cb27-24"><a href="#cb27-24" aria-hidden="true" tabindex="-1"></a><span class="va">known_sites2</span><span class="op">=</span>data/references/Homo_sapiens_assembly38.known_indels.vcf.gz</span>
+<span id="cb27-25"><a href="#cb27-25" aria-hidden="true" tabindex="-1"></a><span class="va">pon</span><span class="op">=</span>data/references/1000g_pon.hg38.vcf.gz</span>
+<span id="cb27-26"><a href="#cb27-26" aria-hidden="true" tabindex="-1"></a><span class="co"># gr_res=data/references/af-only-gnomad.hg38.vcf.gz</span></span>
+<span id="cb27-27"><a href="#cb27-27" aria-hidden="true" tabindex="-1"></a><span class="co"># variants=data/references/small_exac_common_3.hg38.vcf.gz</span></span>
+<span id="cb27-28"><a href="#cb27-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-29"><a href="#cb27-29" aria-hidden="true" tabindex="-1"></a><span class="co">## For Mouse (mm39)</span></span>
+<span id="cb27-30"><a href="#cb27-30" aria-hidden="true" tabindex="-1"></a><span class="co"># ref=data/references/mm39.fa ## if using mm39</span></span>
+<span id="cb27-31"><a href="#cb27-31" aria-hidden="true" tabindex="-1"></a><span class="co"># known_sites1=data/references/mgp_REL2021_indels.chr.sorted.vcf</span></span>
+<span id="cb27-32"><a href="#cb27-32" aria-hidden="true" tabindex="-1"></a><span class="co"># known_sites2=data/references/mgp_REL2021_snps.chr.sorted.vcf</span></span>
+<span id="cb27-33"><a href="#cb27-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-34"><a href="#cb27-34" aria-hidden="true" tabindex="-1"></a><span class="va">bamDir</span><span class="op">=</span>outputs/aligment</span>
+<span id="cb27-35"><a href="#cb27-35" aria-hidden="true" tabindex="-1"></a><span class="va">outputDir</span><span class="op">=</span>outputs/GATK_preprocessing</span>
+<span id="cb27-36"><a href="#cb27-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-37"><a href="#cb27-37" aria-hidden="true" tabindex="-1"></a><span class="co">## Subsetting a sample</span></span>
+<span id="cb27-38"><a href="#cb27-38" aria-hidden="true" tabindex="-1"></a><span class="va">sample</span><span class="op">=</span><span class="va">$(</span><span class="fu">cat</span> <span class="va">$samples_manifest</span> <span class="kw">|</span> <span class="fu">cut</span> <span class="at">-f1</span> <span class="kw">|</span> <span class="fu">sed</span> <span class="at">-n</span> $<span class="pp">[</span><span class="ss">SLURM_ARRAY_TASK_ID</span><span class="pp">]</span>p<span class="va">)</span></span>
+<span id="cb27-39"><a href="#cb27-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-40"><a href="#cb27-40" aria-hidden="true" tabindex="-1"></a><span class="co">## GATK Preprocessing</span></span>
+<span id="cb27-41"><a href="#cb27-41" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">"::&gt; GATK Preprocessing &lt;::"</span></span>
+<span id="cb27-42"><a href="#cb27-42" aria-hidden="true" tabindex="-1"></a><span class="ex">gatk</span> AddOrReplaceReadGroups <span class="at">-I</span> <span class="va">${bamDir}</span>/<span class="va">${sample}</span>.bam <span class="dt">\</span></span>
+<span id="cb27-43"><a href="#cb27-43" aria-hidden="true" tabindex="-1"></a>-O <span class="va">${bamDir}</span>/<span class="va">${sample}</span>_RG.bam <span class="dt">\</span></span>
+<span id="cb27-44"><a href="#cb27-44" aria-hidden="true" tabindex="-1"></a>-LB <span class="va">${sample}</span> <span class="dt">\</span></span>
+<span id="cb27-45"><a href="#cb27-45" aria-hidden="true" tabindex="-1"></a>-PL Illumina <span class="dt">\</span></span>
+<span id="cb27-46"><a href="#cb27-46" aria-hidden="true" tabindex="-1"></a>-PU <span class="va">${sample}</span> <span class="dt">\</span></span>
+<span id="cb27-47"><a href="#cb27-47" aria-hidden="true" tabindex="-1"></a>-SM <span class="va">${sample}</span> <span class="dt">\</span></span>
+<span id="cb27-48"><a href="#cb27-48" aria-hidden="true" tabindex="-1"></a>--VERBOSITY ERROR</span>
+<span id="cb27-49"><a href="#cb27-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-50"><a href="#cb27-50" aria-hidden="true" tabindex="-1"></a><span class="ex">samtools</span> sort <span class="at">-O</span> bam <span class="at">-o</span> <span class="va">${outputDir}</span>/<span class="va">${sample}</span>_sorted.bam <span class="va">${outputDir}</span>/<span class="va">${sample}</span>_RG.bam</span>
+<span id="cb27-51"><a href="#cb27-51" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span> <span class="at">-vf</span> <span class="va">${outputDir}</span>/<span class="va">${sample}</span>_RG.bam</span>
+<span id="cb27-52"><a href="#cb27-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-53"><a href="#cb27-53" aria-hidden="true" tabindex="-1"></a><span class="ex">samtools</span> index <span class="at">-b</span> <span class="va">${outputDir}</span>/<span class="va">${sample}</span>_sorted.bam</span>
+<span id="cb27-54"><a href="#cb27-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-55"><a href="#cb27-55" aria-hidden="true" tabindex="-1"></a><span class="ex">gatk</span> MarkDuplicates <span class="at">-I</span> <span class="va">${outputDir}</span>/<span class="va">${sample}</span>_sorted.bam <span class="dt">\</span></span>
+<span id="cb27-56"><a href="#cb27-56" aria-hidden="true" tabindex="-1"></a>-O <span class="va">${outputDir}</span>/<span class="va">${sample}</span>_MD.bam <span class="dt">\</span></span>
+<span id="cb27-57"><a href="#cb27-57" aria-hidden="true" tabindex="-1"></a>-M <span class="va">${outputDir}</span>/<span class="va">${sample}</span>_MD.txt <span class="dt">\</span></span>
+<span id="cb27-58"><a href="#cb27-58" aria-hidden="true" tabindex="-1"></a>--VERBOSITY ERROR </span>
+<span id="cb27-59"><a href="#cb27-59" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span> <span class="at">-vf</span> <span class="va">${outputDir}</span>/<span class="va">${sample}</span>_sorted.bam<span class="pp">*</span></span>
+<span id="cb27-60"><a href="#cb27-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-61"><a href="#cb27-61" aria-hidden="true" tabindex="-1"></a><span class="ex">gatk</span> BaseRecalibrator <span class="dt">\</span></span>
+<span id="cb27-62"><a href="#cb27-62" aria-hidden="true" tabindex="-1"></a>-I <span class="va">${outputDir}</span>/<span class="va">${sample}</span>_MD.bam <span class="dt">\</span></span>
+<span id="cb27-63"><a href="#cb27-63" aria-hidden="true" tabindex="-1"></a>-R <span class="va">$ref</span> <span class="dt">\</span></span>
+<span id="cb27-64"><a href="#cb27-64" aria-hidden="true" tabindex="-1"></a>--known-sites <span class="va">$known_sites1</span> <span class="dt">\</span></span>
+<span id="cb27-65"><a href="#cb27-65" aria-hidden="true" tabindex="-1"></a>--known-sites <span class="va">$known_sites2</span> <span class="dt">\</span></span>
+<span id="cb27-66"><a href="#cb27-66" aria-hidden="true" tabindex="-1"></a>-O <span class="va">${outputDir}</span>/<span class="va">${sample}</span>_DupStat.table <span class="dt">\</span></span>
+<span id="cb27-67"><a href="#cb27-67" aria-hidden="true" tabindex="-1"></a>--verbosity ERROR </span>
+<span id="cb27-68"><a href="#cb27-68" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-69"><a href="#cb27-69" aria-hidden="true" tabindex="-1"></a><span class="ex">gatk</span> ApplyBQSR <span class="at">-R</span> <span class="va">$ref</span> <span class="dt">\</span></span>
+<span id="cb27-70"><a href="#cb27-70" aria-hidden="true" tabindex="-1"></a>-I <span class="va">${outputDir}</span>/<span class="va">${sample}</span>_MD.bam <span class="dt">\</span></span>
+<span id="cb27-71"><a href="#cb27-71" aria-hidden="true" tabindex="-1"></a>--bqsr-recal-file <span class="va">${outputDir}</span>/<span class="va">${sample}</span>_DupStat.table <span class="dt">\</span></span>
+<span id="cb27-72"><a href="#cb27-72" aria-hidden="true" tabindex="-1"></a>-O <span class="va">${outputDir}</span>/<span class="va">${sample}</span>_BQSR.bam <span class="dt">\</span></span>
+<span id="cb27-73"><a href="#cb27-73" aria-hidden="true" tabindex="-1"></a>--verbosity ERROR </span>
+<span id="cb27-74"><a href="#cb27-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-75"><a href="#cb27-75" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span> <span class="at">-vf</span> <span class="va">${outputDir}</span>/<span class="va">${sample}</span>_MD.<span class="pp">*</span></span>
+<span id="cb27-76"><a href="#cb27-76" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span> <span class="at">-vf</span> <span class="va">${outputDir}</span>/<span class="va">${sample}</span>_DupStat.table</span>
+<span id="cb27-77"><a href="#cb27-77" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-78"><a href="#cb27-78" aria-hidden="true" tabindex="-1"></a><span class="co">## :::&gt; REVIEW</span></span>
+<span id="cb27-79"><a href="#cb27-79" aria-hidden="true" tabindex="-1"></a><span class="co"># # Collect multiple metrics</span></span>
+<span id="cb27-80"><a href="#cb27-80" aria-hidden="true" tabindex="-1"></a><span class="co"># gatk CollectMultipleMetrics \</span></span>
+<span id="cb27-81"><a href="#cb27-81" aria-hidden="true" tabindex="-1"></a><span class="co">#     -R $ref \</span></span>
+<span id="cb27-82"><a href="#cb27-82" aria-hidden="true" tabindex="-1"></a><span class="co">#     -I ${outputDir}/${sample}_BQSR.bam \</span></span>
+<span id="cb27-83"><a href="#cb27-83" aria-hidden="true" tabindex="-1"></a><span class="co">#     -O ${outputDir}/${sample} \</span></span>
+<span id="cb27-84"><a href="#cb27-84" aria-hidden="true" tabindex="-1"></a><span class="co">#     --PROGRAM CollectAlignmentSummaryMetrics \</span></span>
+<span id="cb27-85"><a href="#cb27-85" aria-hidden="true" tabindex="-1"></a><span class="co">#     --PROGRAM CollectInsertSizeMetrics \</span></span>
+<span id="cb27-86"><a href="#cb27-86" aria-hidden="true" tabindex="-1"></a><span class="co">#     --PROGRAM CollectGcBiasMetrics</span></span>
+<span id="cb27-87"><a href="#cb27-87" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-88"><a href="#cb27-88" aria-hidden="true" tabindex="-1"></a><span class="co"># # Collect WES-specific metrics</span></span>
+<span id="cb27-89"><a href="#cb27-89" aria-hidden="true" tabindex="-1"></a><span class="co"># gatk CollectHsMetrics \</span></span>
+<span id="cb27-90"><a href="#cb27-90" aria-hidden="true" tabindex="-1"></a><span class="co">#     -R $ref \</span></span>
+<span id="cb27-91"><a href="#cb27-91" aria-hidden="true" tabindex="-1"></a><span class="co">#     -I ${outputDir}/${sample}_BQSR.bam \</span></span>
+<span id="cb27-92"><a href="#cb27-92" aria-hidden="true" tabindex="-1"></a><span class="co">#     -O ${outputDir}/${sample}.hs_metrics.txt \</span></span>
+<span id="cb27-93"><a href="#cb27-93" aria-hidden="true" tabindex="-1"></a><span class="co">#     --BAIT_INTERVALS targets.interval_list \</span></span>
+<span id="cb27-94"><a href="#cb27-94" aria-hidden="true" tabindex="-1"></a><span class="co">#     --TARGET_INTERVALS targets.interval_list</span></span>
+<span id="cb27-95"><a href="#cb27-95" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-96"><a href="#cb27-96" aria-hidden="true" tabindex="-1"></a><span class="co"># # Calculate coverage</span></span>
+<span id="cb27-97"><a href="#cb27-97" aria-hidden="true" tabindex="-1"></a><span class="co"># mosdepth -t 4 -b targets.bed metrics/sample aligned/sample.bqsr.bam</span></span>
+<span id="cb27-98"><a href="#cb27-98" aria-hidden="true" tabindex="-1"></a><span class="co">### :::</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled" title="Merging BAM files from the same sample">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-7-contents" aria-controls="callout-7" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Merging BAM files from the same sample
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-7" class="callout-7-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>Sometimes you will need to merge multiple bam files from the same sample into one file. You can use the following script. You will need the same manifest file used above ‘samples_manifest.txt’ that has one column of sample names.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb28"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/bash</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --account=</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --job-name='merging_bams'</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --output=logs/merging_bams.log</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --partition=standard</span></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --mem=64G</span></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --cpus-per-task=8</span></span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --time=24:00:00</span></span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --array=1-23</span></span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a><span class="co">## Loading Important Modules from Greatlakes HPC</span></span>
+<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a><span class="ex">ml</span> samtools</span>
+<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-17"><a href="#cb28-17" aria-hidden="true" tabindex="-1"></a><span class="co">## Setting up variables for files and directories</span></span>
+<span id="cb28-18"><a href="#cb28-18" aria-hidden="true" tabindex="-1"></a><span class="va">samples_manifest</span><span class="op">=</span>outputs/samples_manifest.txt</span>
+<span id="cb28-19"><a href="#cb28-19" aria-hidden="true" tabindex="-1"></a><span class="va">sample</span><span class="op">=</span><span class="va">$(</span><span class="fu">cat</span> <span class="va">$samples_manifest</span> <span class="kw">|</span> <span class="fu">cut</span> <span class="at">-f1</span> <span class="kw">|</span> <span class="fu">uniq</span> <span class="kw">|</span> <span class="fu">sed</span> <span class="at">-n</span> $<span class="pp">[</span><span class="ss">SLURM_ARRAY_TASK_ID</span><span class="pp">]</span>p<span class="va">)</span> </span>
+<span id="cb28-20"><a href="#cb28-20" aria-hidden="true" tabindex="-1"></a><span class="va">outputDir</span><span class="op">=</span>outputs/GATK_preprocessing</span>
+<span id="cb28-21"><a href="#cb28-21" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> <span class="at">-p</span> <span class="va">${outputDir}</span></span>
+<span id="cb28-22"><a href="#cb28-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-23"><a href="#cb28-23" aria-hidden="true" tabindex="-1"></a><span class="co">## Merge bams of different samples</span></span>
+<span id="cb28-24"><a href="#cb28-24" aria-hidden="true" tabindex="-1"></a><span class="ex">samtools</span> merge <span class="at">-r</span> <span class="at">-o</span> <span class="va">${outputDir}</span>/<span class="va">${sample}</span>.bam <span class="va">${outputDir}</span>/<span class="va">${sample}</span><span class="pp">*</span></span>
+<span id="cb28-25"><a href="#cb28-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-26"><a href="#cb28-26" aria-hidden="true" tabindex="-1"></a><span class="co">## Removing old files</span></span>
+<span id="cb28-27"><a href="#cb28-27" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span> <span class="at">-vf</span> <span class="va">${outputDir}</span>/<span class="va">${sample}</span><span class="pp">*</span>_BQSR.bam</span>
+<span id="cb28-28"><a href="#cb28-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-29"><a href="#cb28-29" aria-hidden="true" tabindex="-1"></a><span class="ex">samtools</span> index <span class="va">${outputDir}</span>/<span class="va">${sample}</span>.bam</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="next-steps" class="level2">
+<h2 class="anchored" data-anchor-id="next-steps">Next Steps</h2>
+<p>With preprocessed BAM files, proceed to:</p>
+<ul>
+<li><a href="../../pipelines/wes/02-Variant-Calling.html">SNV/Indel Calling</a></li>
+<li><a href="../../pipelines/wes/03-CNV-Calling.html">CNV Calling</a></li>
+</ul>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/aelhossiny\.github\.io");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+            // target, if specified
+            link.setAttribute("target", "_blank");
+            if (link.getAttribute("rel") === null) {
+              link.setAttribute("rel", "noopener");
+            }
+            // default icon
+            link.classList.add("external");
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>© 2026 Ahmed Elhossiny · Memorial Sloan Kettering Cancer Center</p>
+</div>   
+    <div class="nav-footer-center">
+<p>Built with <a href="https://quarto.org">Quarto</a></p>
+</div>
+    <div class="nav-footer-right">
+      <ul class="footer-items list-unstyled">
+    <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/aelhossiny">
+      <i class="bi bi-github" role="img">
+</i> 
+    </a>
+  </li>  
+</ul>
+    </div>
+  </div>
+</footer>
+
+
+
+
+<script src="../../site_libs/quarto-html/zenscroll-min.js"></script>
+</body></html>
